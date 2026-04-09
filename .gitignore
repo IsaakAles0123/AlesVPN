@@ -1,0 +1,23 @@
+# Gradle / Android
+**/build/
+**/.gradle/
+**/target/
+**/local.properties
+**/captures/
+**/*.apk
+**/*.aab
+**/*.dex
+**/output.json
+
+# IDE
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs / local
+*.log
+.env
+**/application-local.properties

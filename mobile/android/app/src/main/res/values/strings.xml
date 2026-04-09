@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AlesVPN</string>
+    <string name="btn_prepare_vpn">Запросить разрешение VPN</string>
+    <string name="btn_stop_vpn">Остановить VPN</string>
+    <string name="btn_test_api">Проверить /actuator/health</string>
+    <string name="hint_api">Базовый URL API (эмулятор: 10.0.2.2:8080)</string>
+</resources>
