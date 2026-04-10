@@ -24,4 +24,16 @@ Thumbs.db
 
 # Accidental junk in repo root (do not commit)
 /cd
+/curl
+/echo
+/git
 /git.trace
+/git-push-log.txt
+/push-out.txt
+/gcm-diagnose.log
+/git-trace.log
+/git-trace-internal.log
+/cred.txt
+/fill.txt
+/remote.txt
+/ls-remote.txt
