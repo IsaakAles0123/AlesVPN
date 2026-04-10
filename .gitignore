@@ -21,3 +21,7 @@ Thumbs.db
 *.log
 .env
 **/application-local.properties
+
+# Accidental junk in repo root (do not commit)
+/cd
+/git.trace
