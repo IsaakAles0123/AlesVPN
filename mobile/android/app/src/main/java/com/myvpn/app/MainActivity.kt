@@ -1,8 +1,12 @@
 package com.myvpn.app
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Typeface
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
@@ -188,9 +192,32 @@ class MainActivity : AppCompatActivity() {
         binding.textLog.append(line + "\n")
     }
 
+    // Запрос к 10.0.2.2 при WG: только через сеть без TRANSPORT_VPN (предпочт. Wi‑Fi/Ethernet на эмуляторе).
+    private fun findNetworkBypassingVpn(): Network? {
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        @Suppress("DEPRECATION")
+        val networks = cm.allNetworks
+        var fallback: Network? = null
+        for (network in networks) {
+            val caps = cm.getNetworkCapabilities(network) ?: continue
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) continue
+            if (!caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) continue
+            val wifiOrEth = caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+            if (wifiOrEth) return network
+            if (fallback == null) fallback = network
+        }
+        return fallback
+    }
+
     private fun fetchHealth(urlString: String): String {
         val url = URL(urlString)
-        val conn = url.openConnection() as HttpURLConnection
+        val network = findNetworkBypassingVpn()
+            ?: error(
+                "Сеть вне VPN не найдена. Нужны INTERNET + ACCESS_NETWORK_STATE. " +
+                    "Или отключите WireGuard и повторите проверку API.",
+            )
+        val conn = network.openConnection(url) as HttpURLConnection
         conn.requestMethod = "GET"
         conn.connectTimeout = 15_000
         conn.readTimeout = 15_000
