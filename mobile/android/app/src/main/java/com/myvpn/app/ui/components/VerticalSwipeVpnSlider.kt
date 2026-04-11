@@ -42,6 +42,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,8 +60,8 @@ fun VerticalSwipeVpnSlider(
     onSwipeToDisconnect: () -> Unit,
     modifier: Modifier = Modifier,
     trackWidth: Dp = 82.dp,
-    trackHeight: Dp = 272.dp,
-    handleHeight: Dp = 92.dp,
+    trackHeight: Dp = 136.dp,
+    handleHeight: Dp = 72.dp,
 ) {
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
@@ -69,7 +70,7 @@ fun VerticalSwipeVpnSlider(
 
     val isBusy = tunnelState == Tunnel.State.TOGGLE
     val showConnect = tunnelState == Tunnel.State.DOWN
-    val label = if (showConnect) "VPN" else "СТОП"
+    val label = if (showConnect) "VPN" else "STOP"
     val accentGreen = Color(0xFF39FF88)
 
     LaunchedEffect(tunnelState) {
@@ -89,7 +90,7 @@ fun VerticalSwipeVpnSlider(
             color = Color(0xFF8B92A8),
             fontSize = 13.sp,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 12.dp),
+            modifier = Modifier.padding(bottom = 8.dp),
         )
 
         BoxWithConstraints(
@@ -97,7 +98,7 @@ fun VerticalSwipeVpnSlider(
                 .width(trackWidth)
                 .height(trackHeight),
         ) {
-            val innerPad = 10.dp
+            val innerPad = 8.dp
             val innerPadPx = with(density) { innerPad.toPx() }
             val handlePx = with(density) { handleHeight.toPx() }
             val hPx = constraints.maxHeight.toFloat()
@@ -133,8 +134,8 @@ fun VerticalSwipeVpnSlider(
                     }
                     val cx = size.width / 2f
                     val cy = size.height - 8.dp.toPx()
-                    for (i in 0..5) {
-                        val r = 22f + i * 18f
+                    for (i in 0..4) {
+                        val r = 12f + i * 10f
                         drawArc(
                             color = NeonCyan.copy(alpha = 0.12f - i * 0.015f),
                             startAngle = 200f,
@@ -151,7 +152,7 @@ fun VerticalSwipeVpnSlider(
                 Column(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = 10.dp),
+                        .padding(top = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text("▲", color = Color.White, fontSize = 12.sp)
@@ -162,8 +163,8 @@ fun VerticalSwipeVpnSlider(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 10.dp, vertical = 38.dp)
-                        .clip(RoundedCornerShape(28.dp))
+                        .padding(horizontal = 10.dp, vertical = 22.dp)
+                        .clip(RoundedCornerShape(22.dp))
                         .background(
                             Brush.verticalGradient(
                                 listOf(Color(0xFF0A0B10), Color(0xFF1B1C24)),
@@ -213,29 +214,33 @@ fun VerticalSwipeVpnSlider(
                                 listOf(Color(0xFF6D7380), Color(0xFF3E424B), Color(0xFF2A2D35)),
                             ),
                         )
-                        .padding(vertical = 10.dp, horizontal = 12.dp),
+                        .padding(vertical = 6.dp, horizontal = 8.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(
                             modifier = Modifier
-                                .width(36.dp)
-                                .height(4.dp)
+                                .width(32.dp)
+                                .height(3.dp)
                                 .clip(RoundedCornerShape(2.dp))
                                 .background(if (showConnect) NeonCyan else accentGreen),
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = label,
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            letterSpacing = 1.sp,
+                            fontSize = 10.sp,
+                            letterSpacing = 0.sp,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Clip,
+                            textAlign = TextAlign.Center,
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
+                                .size(30.dp)
                                 .clip(CircleShape)
                                 .background(Color(0xFF22252E)),
                             contentAlignment = Alignment.Center,
@@ -244,7 +249,7 @@ fun VerticalSwipeVpnSlider(
                                 imageVector = Icons.Rounded.PowerSettingsNew,
                                 contentDescription = null,
                                 tint = Color.White.copy(alpha = 0.92f),
-                                modifier = Modifier.size(22.dp),
+                                modifier = Modifier.size(18.dp),
                             )
                         }
                     }
