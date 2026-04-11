@@ -6,8 +6,8 @@
         <item name="colorPrimaryContainer">@color/primary_container</item>
         <item name="colorSurface">@color/surface</item>
         <item name="android:colorBackground">@color/surface</item>
-        <item name="android:statusBarColor">@color/primary</item>
-        <item name="android:navigationBarColor">@color/surface</item>
+        <item name="android:statusBarColor">#FF050508</item>
+        <item name="android:navigationBarColor">#FF050508</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
     </style>
 </resources>
