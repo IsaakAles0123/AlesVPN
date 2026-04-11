@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.myvpn.app.MainViewModel
 import com.myvpn.app.R
 import com.myvpn.app.ui.components.NeonBackground
+import com.myvpn.app.ui.components.VerticalSwipeVpnSlider
 import com.myvpn.app.ui.theme.NeonCyan
 import com.myvpn.app.ui.theme.NeonPurple
 import com.myvpn.app.ui.theme.TextMuted
@@ -45,7 +46,6 @@ fun HomeScreen(
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -89,91 +89,76 @@ fun HomeScreen(
                 style = MaterialTheme.typography.titleMedium,
                 color = NeonPurple,
             )
-            RowButtons(
-                onConnect = onConnectClick,
-                onStop = onStopClick,
+            VerticalSwipeVpnSlider(
+                tunnelState = viewModel.tunnelState,
+                onSwipeToConnect = onConnectClick,
+                onSwipeToDisconnect = onStopClick,
             )
 
-            Text(
-                text = stringResource(R.string.section_api),
-                style = MaterialTheme.typography.titleMedium,
-                color = NeonPurple,
-            )
-            OutlinedTextField(
-                value = viewModel.baseUrl,
-                onValueChange = viewModel::updateBaseUrl,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.hint_api)) },
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = NeonPurple,
-                    unfocusedBorderColor = TextMuted,
-                    focusedLabelColor = NeonCyan,
-                    cursorColor = NeonCyan,
-                ),
-            )
-            Button(
-                onClick = {
-                    val base = viewModel.baseUrl.trim()
-                    if (base.isEmpty()) {
-                        Toast.makeText(ctx, R.string.toast_empty_url, Toast.LENGTH_SHORT).show()
-                    } else {
-                        viewModel.runHealthCheck(
-                            ctx.applicationContext,
-                            base,
-                            onResult = { viewModel.appendLog(it) },
-                            onError = { viewModel.appendLog("Ошибка: $it") },
-                        )
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = NeonPurple),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
-            ) {
-                Text(stringResource(R.string.btn_test_api))
-            }
-
-            Text(
-                text = stringResource(R.string.section_log),
-                style = MaterialTheme.typography.titleMedium,
-                color = NeonPurple,
-            )
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
-                ),
-                modifier = Modifier.fillMaxWidth(),
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Text(
-                    text = viewModel.logText.ifEmpty { "—" },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(12.dp),
+                    text = stringResource(R.string.section_api),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = NeonPurple,
                 )
-            }
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-    }
-}
+                OutlinedTextField(
+                    value = viewModel.baseUrl,
+                    onValueChange = viewModel::updateBaseUrl,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.hint_api)) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = NeonPurple,
+                        unfocusedBorderColor = TextMuted,
+                        focusedLabelColor = NeonCyan,
+                        cursorColor = NeonCyan,
+                    ),
+                )
+                Button(
+                    onClick = {
+                        val base = viewModel.baseUrl.trim()
+                        if (base.isEmpty()) {
+                            Toast.makeText(ctx, R.string.toast_empty_url, Toast.LENGTH_SHORT).show()
+                        } else {
+                            viewModel.runHealthCheck(
+                                ctx.applicationContext,
+                                base,
+                                onResult = { viewModel.appendLog(it) },
+                                onError = { viewModel.appendLog("Ошибка: $it") },
+                            )
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = NeonPurple),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                ) {
+                    Text(stringResource(R.string.btn_test_api))
+                }
 
-@Composable
-private fun RowButtons(
-    onConnect: () -> Unit,
-    onStop: () -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Button(
-            onClick = onConnect,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = NeonPurple),
-        ) {
-            Text(stringResource(R.string.btn_prepare_vpn))
-        }
-        Button(
-            onClick = onStop,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        ) {
-            Text(stringResource(R.string.btn_stop_vpn))
+                Text(
+                    text = stringResource(R.string.section_log),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = NeonPurple,
+                )
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = viewModel.logText.ifEmpty { "—" },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(12.dp),
+                    )
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+            }
         }
     }
 }
