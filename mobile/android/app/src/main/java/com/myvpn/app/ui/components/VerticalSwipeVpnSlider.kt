@@ -4,7 +4,9 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -22,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,7 +54,7 @@ import com.wireguard.android.backend.Tunnel
 import kotlinx.coroutines.launch
 
 /**
- * Вертикальный трек с «ручкой» снизу: потянуть вверх до конца — выполнить действие (как на референсе).
+ * Подключение: потянуть ручку вверх. Отключение: одно нажатие на ручку (без свайпа).
  */
 @Composable
 fun VerticalSwipeVpnSlider(
@@ -60,8 +63,8 @@ fun VerticalSwipeVpnSlider(
     onSwipeToDisconnect: () -> Unit,
     modifier: Modifier = Modifier,
     trackWidth: Dp = 82.dp,
-    trackHeight: Dp = 136.dp,
-    handleHeight: Dp = 72.dp,
+    trackHeight: Dp = 204.dp,
+    handleHeight: Dp = 80.dp,
 ) {
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
@@ -85,7 +88,7 @@ fun VerticalSwipeVpnSlider(
             text = if (showConnect) {
                 "Потяните вверх, чтобы подключиться"
             } else {
-                "Потяните вверх, чтобы отключить"
+                "Нажмите STOP, чтобы отключить"
             },
             color = Color(0xFF8B92A8),
             fontSize = 13.sp,
@@ -148,22 +151,24 @@ fun VerticalSwipeVpnSlider(
                     }
                 }
 
-                // Верхние шевроны «вверх»
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 6.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text("▲", color = Color.White, fontSize = 12.sp)
-                    Text("▲", color = Color(0xFF5C6378), fontSize = 11.sp, modifier = Modifier.offset(y = (-4).dp))
+                // Шевроны только для режима подключения (свайп вверх)
+                if (showConnect) {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text("▲", color = Color.White, fontSize = 12.sp)
+                        Text("▲", color = Color(0xFF5C6378), fontSize = 11.sp, modifier = Modifier.offset(y = (-4).dp))
+                    }
                 }
 
                 // Тёмный «жёлоб»
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 10.dp, vertical = 22.dp)
+                        .padding(horizontal = 10.dp, vertical = 30.dp)
                         .clip(RoundedCornerShape(22.dp))
                         .background(
                             Brush.verticalGradient(
@@ -172,8 +177,9 @@ fun VerticalSwipeVpnSlider(
                         ),
                 )
 
-                // Ручка
+                // Ручка: свайп только для подключения; отключение — по нажатию
                 val yDp = with(density) { offsetY.value.toDp() }
+                val interactionStop = remember { MutableInteractionSource() }
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -181,9 +187,17 @@ fun VerticalSwipeVpnSlider(
                         .width(trackWidth - 18.dp)
                         .height(handleHeight)
                         .offset(y = -yDp)
+                        .shadow(8.dp, RoundedCornerShape(handleHeight / 2))
+                        .clip(RoundedCornerShape(handleHeight / 2))
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color(0xFF6D7380), Color(0xFF3E424B), Color(0xFF2A2D35)),
+                            ),
+                        )
                         .then(
-                            if (isBusy) Modifier else {
-                                Modifier.pointerInput(maxPx, showConnect) {
+                            when {
+                                isBusy -> Modifier
+                                showConnect -> Modifier.pointerInput(maxPx) {
                                     detectVerticalDragGestures(
                                         onVerticalDrag = { _, dragAmount ->
                                             scope.launch {
@@ -194,8 +208,8 @@ fun VerticalSwipeVpnSlider(
                                         onDragEnd = {
                                             scope.launch {
                                                 val threshold = maxPx * 0.72f
-                                                if (!isBusy && offsetY.value >= threshold) {
-                                                    if (showConnect) onSwipeToConnect() else onSwipeToDisconnect()
+                                                if (offsetY.value >= threshold) {
+                                                    onSwipeToConnect()
                                                 }
                                                 offsetY.animateTo(0f, tween(280))
                                             }
@@ -205,14 +219,13 @@ fun VerticalSwipeVpnSlider(
                                         },
                                     )
                                 }
+                                else -> Modifier.clickable(
+                                    interactionSource = interactionStop,
+                                    indication = ripple(),
+                                    enabled = !isBusy,
+                                    onClick = onSwipeToDisconnect,
+                                )
                             },
-                        )
-                        .shadow(8.dp, RoundedCornerShape(handleHeight / 2))
-                        .clip(RoundedCornerShape(handleHeight / 2))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color(0xFF6D7380), Color(0xFF3E424B), Color(0xFF2A2D35)),
-                            ),
                         )
                         .padding(vertical = 6.dp, horizontal = 8.dp),
                     contentAlignment = Alignment.Center,
