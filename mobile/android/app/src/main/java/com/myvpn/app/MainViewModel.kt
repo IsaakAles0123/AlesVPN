@@ -29,15 +29,6 @@ class MainViewModel : ViewModel() {
     var vpnSessionStartMs by mutableStateOf<Long?>(null)
         private set
 
-    var speedTestRunning by mutableStateOf(false)
-        private set
-
-    var speedPingMs by mutableStateOf<Long?>(null)
-        private set
-
-    var speedDownloadMbps by mutableStateOf<Float?>(null)
-        private set
-
     fun updateBaseUrl(value: String) {
         baseUrl = value
     }
@@ -53,15 +44,6 @@ class MainViewModel : ViewModel() {
             Tunnel.State.DOWN -> vpnSessionStartMs = null
             Tunnel.State.TOGGLE -> { /* keep timer */ }
         }
-    }
-
-    fun updateSpeedTestRunning(running: Boolean) {
-        speedTestRunning = running
-    }
-
-    fun updateSpeedResults(pingMs: Long?, downloadMbps: Float?) {
-        speedPingMs = pingMs
-        speedDownloadMbps = downloadMbps
     }
 
     fun runHealthCheck(
@@ -122,25 +104,5 @@ class MainViewModel : ViewModel() {
     private fun isLocalDevHost(host: String): Boolean = when (host) {
         "10.0.2.2", "10.0.3.2", "127.0.0.1", "localhost" -> true
         else -> false
-    }
-
-    fun runSpeedTest(context: android.content.Context) {
-        val testUrl = "https://proof.ovh.net/files/10Mb.dat"
-        val pingUrl = "https://proof.ovh.net/"
-        viewModelScope.launch {
-            speedTestRunning = true
-            updateSpeedResults(null, null)
-            try {
-                val network = findNetworkBypassingVpn(context)
-                val ping = SpeedMeasurer.measurePingMs(network, pingUrl)
-                val mbps = SpeedMeasurer.measureDownloadMbps(context, network, testUrl)
-                updateSpeedResults(ping, mbps)
-            } catch (e: Exception) {
-                appendLog("Speed test: ${e.message}")
-                updateSpeedResults(null, null)
-            } finally {
-                speedTestRunning = false
-            }
-        }
     }
 }
