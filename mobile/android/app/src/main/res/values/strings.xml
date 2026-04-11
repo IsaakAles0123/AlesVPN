@@ -9,7 +9,7 @@
     <string name="vpn_status_off">Не подключено</string>
     <string name="vpn_status_on">Активен</string>
     <string name="vpn_status_turning">Подключение…</string>
-    <string name="btn_prepare_vpn">Подключить WireGuard</string>
+    <string name="btn_prepare_vpn">Подключить</string>
     <string name="btn_stop_vpn">Отключить</string>
     <string name="btn_test_api">Проверить /actuator/health</string>
     <string name="hint_api">Базовый URL (эмулятор: http://10.0.2.2:8080 или после adb reverse: http://127.0.0.1:8080)</string>
