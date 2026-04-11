@@ -1,6 +1,5 @@
 package com.myvpn.app.ui.components.dashboard
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -21,29 +19,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -53,9 +42,7 @@ import com.myvpn.app.ui.theme.NeonCyan
 import com.myvpn.app.ui.theme.NeonPurple
 import com.myvpn.app.ui.theme.NeonPurpleDim
 import com.myvpn.app.ui.theme.TextMuted
-import com.myvpn.app.ui.util.formatSessionDurationHms
 import com.wireguard.android.backend.Tunnel
-import kotlinx.coroutines.delay
 
 data class MockServer(
     val id: String,
@@ -73,28 +60,14 @@ private val defaultServers = listOf(
 
 @Composable
 fun RefTopBar(
-    onProfileClick: () -> Unit,
     onPlusClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(
-            onClick = onProfileClick,
-            modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(Color(0xFF2A2D38)),
-        ) {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = null,
-                tint = Color.White.copy(alpha = 0.9f),
-            )
-        }
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(24.dp))
@@ -163,102 +136,6 @@ fun ServerLocationPill(
 }
 
 @Composable
-fun LedSessionTimer(
-    tunnelState: Tunnel.State,
-    sessionStartMs: Long?,
-    modifier: Modifier = Modifier,
-) {
-    var tick by remember { mutableIntStateOf(0) }
-    val active = tunnelState == Tunnel.State.UP && sessionStartMs != null
-    LaunchedEffect(active, sessionStartMs) {
-        if (!active) return@LaunchedEffect
-        while (true) {
-            delay(1000)
-            tick++
-        }
-    }
-    val display = remember(active, sessionStartMs, tick) {
-        if (!active) "00:00:00"
-        else formatSessionDurationHms(sessionStartMs!!)
-    }
-    Text(
-        text = display,
-        modifier = modifier.fillMaxWidth(),
-        textAlign = TextAlign.Center,
-        color = if (active) NeonCyan else TextMuted.copy(alpha = 0.6f),
-        fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.Bold,
-        fontSize = 42.sp,
-        letterSpacing = 6.sp,
-    )
-}
-
-@Composable
-fun DownloadUploadRow(
-    downloadMbps: String,
-    uploadMbps: String,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AlesSpacing.item),
-    ) {
-        StatChip(
-            label = "Download",
-            value = downloadMbps,
-            accent = NeonCyan,
-            modifier = Modifier.weight(1f),
-        )
-        StatChip(
-            label = "Upload",
-            value = uploadMbps,
-            accent = NeonPurple,
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-@Composable
-private fun StatChip(
-    label: String,
-    value: String,
-    accent: Color,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF161822),
-        ),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(accent.copy(alpha = 0.18f), Color(0xFF12131C)),
-                    ),
-                )
-                .padding(horizontal = 14.dp, vertical = 14.dp),
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = TextMuted,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
-    }
-}
-
-@Composable
 fun GlobePowerCluster(
     tunnelState: Tunnel.State,
     onPowerClick: () -> Unit,
@@ -292,11 +169,6 @@ fun GlobePowerCluster(
                     ),
             )
         }
-        WireframeGlobe(
-            modifier = Modifier
-                .size(200.dp)
-                .align(Alignment.Center),
-        )
         androidx.compose.material3.FilledIconButton(
             onClick = { if (enabled) onPowerClick() },
             modifier = Modifier.size(88.dp),
@@ -311,47 +183,6 @@ fun GlobePowerCluster(
                 imageVector = Icons.Rounded.PowerSettingsNew,
                 contentDescription = null,
                 modifier = Modifier.size(44.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun WireframeGlobe(modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier) {
-        val c = Offset(size.width / 2f, size.height / 2f)
-        val r = size.minDimension / 2.1f
-        drawCircle(
-            color = NeonPurple.copy(alpha = 0.15f),
-            radius = r,
-            center = c,
-            style = Stroke(width = 1.5.dp.toPx()),
-        )
-        for (i in -2..2) {
-            val dy = i * (r / 3f)
-            val ry = kotlin.math.sqrt((r * r - dy * dy).coerceAtLeast(0f).toDouble()).toFloat()
-            if (ry > 0) {
-                drawArc(
-                    color = NeonCyan.copy(alpha = 0.12f),
-                    startAngle = 0f,
-                    sweepAngle = 180f,
-                    useCenter = false,
-                    topLeft = Offset(c.x - ry, c.y + dy - 2f),
-                    size = androidx.compose.ui.geometry.Size(ry * 2, 4f),
-                    style = Stroke(1.dp.toPx()),
-                )
-            }
-        }
-        for (i in 0..5) {
-            val a = i * 30f
-            drawArc(
-                color = NeonPurple.copy(alpha = 0.08f),
-                startAngle = a,
-                sweepAngle = 80f,
-                useCenter = false,
-                topLeft = Offset(c.x - r, c.y - r),
-                size = androidx.compose.ui.geometry.Size(r * 2, r * 2),
-                style = Stroke(1.dp.toPx()),
             )
         }
     }
@@ -429,11 +260,8 @@ fun VpnRefDashboard(
     servers: List<MockServer>,
     selectedIndex: Int,
     onSelectServer: (Int) -> Unit,
-    onProfileClick: () -> Unit,
     onPlusClick: () -> Unit,
     onPowerClick: () -> Unit,
-    downloadMbps: String,
-    uploadMbps: String,
     modifier: Modifier = Modifier,
 ) {
     val selected = servers.getOrElse(selectedIndex) { servers.first() }
@@ -442,10 +270,9 @@ fun VpnRefDashboard(
         verticalArrangement = Arrangement.spacedBy(AlesSpacing.section),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        RefTopBar(onProfileClick = onProfileClick, onPlusClick = onPlusClick)
+        RefTopBar(onPlusClick = onPlusClick)
         ServerLocationPill(server = selected)
-        LedSessionTimer(tunnelState = tunnelState, sessionStartMs = sessionStartMs)
-        DownloadUploadRow(downloadMbps = downloadMbps, uploadMbps = uploadMbps)
+        DotMatrixSessionTimer(tunnelState = tunnelState, sessionStartMs = sessionStartMs)
         GlobePowerCluster(tunnelState = tunnelState, onPowerClick = onPowerClick)
         ServerCarousel(
             servers = servers,

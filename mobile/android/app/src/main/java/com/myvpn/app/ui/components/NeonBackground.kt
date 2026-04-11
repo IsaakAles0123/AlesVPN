@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -32,6 +33,12 @@ fun NeonBackground(content: @Composable BoxScope.() -> Unit) {
                 ),
             ),
     ) {
+        WireframeGlobeBackdrop(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .offset(y = 48.dp),
+        )
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)

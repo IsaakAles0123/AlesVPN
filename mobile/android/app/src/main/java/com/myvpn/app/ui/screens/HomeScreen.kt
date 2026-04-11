@@ -70,9 +70,6 @@ fun HomeScreen(
                 servers = servers,
                 selectedIndex = selectedServerIndex,
                 onSelectServer = { selectedServerIndex = it },
-                onProfileClick = {
-                    Toast.makeText(ctx, R.string.app_name, Toast.LENGTH_SHORT).show()
-                },
                 onPlusClick = {
                     Toast.makeText(ctx, "Get Plus", Toast.LENGTH_SHORT).show()
                 },
@@ -83,8 +80,6 @@ fun HomeScreen(
                         Tunnel.State.TOGGLE -> Unit
                     }
                 },
-                downloadMbps = "—",
-                uploadMbps = "—",
                 modifier = Modifier.fillMaxWidth(),
             )
 
