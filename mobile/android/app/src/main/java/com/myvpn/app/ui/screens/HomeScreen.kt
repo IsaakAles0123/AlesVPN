@@ -20,6 +20,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -33,6 +38,7 @@ import com.myvpn.app.ui.theme.NeonPurple
 import com.myvpn.app.ui.theme.TextMuted
 import com.myvpn.app.ui.util.formatSessionDuration
 import com.wireguard.android.backend.Tunnel
+import kotlinx.coroutines.delay
 
 @Composable
 fun HomeScreen(
@@ -77,11 +83,7 @@ fun HomeScreen(
 
             val session = viewModel.vpnSessionStartMs
             if (session != null && viewModel.tunnelState == Tunnel.State.UP) {
-                Text(
-                    text = "Сессия: ${formatSessionDuration(session)}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = NeonCyan,
-                )
+                SessionDurationLabel(startMs = session)
             }
 
             Text(
@@ -161,4 +163,22 @@ fun HomeScreen(
             }
         }
     }
+}
+
+@Composable
+private fun SessionDurationLabel(startMs: Long) {
+    var tick by remember { mutableIntStateOf(0) }
+    LaunchedEffect(startMs) {
+        tick = 0
+        while (true) {
+            delay(1000)
+            tick++
+        }
+    }
+    val text = remember(startMs, tick) { "Сессия: ${formatSessionDuration(startMs)}" }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleMedium,
+        color = NeonCyan,
+    )
 }
