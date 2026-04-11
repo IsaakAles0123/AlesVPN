@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">AlesVPN</string>
-    <string name="screen_subtitle">Локальные проверки и WireGuard</string>
-    <string name="section_connection">Подключение</string>
     <string name="section_api">API сервера</string>
     <string name="section_log">События</string>
-    <string name="vpn_status_label">Статус туннеля</string>
-    <string name="vpn_status_off">Не подключено</string>
-    <string name="vpn_status_on">Активен</string>
-    <string name="vpn_status_turning">Подключение…</string>
+    <string name="status_label">Status</string>
+    <string name="vpn_status_off">Disconnected</string>
+    <string name="vpn_status_on">Connected</string>
+    <string name="vpn_status_turning">Connecting…</string>
+    <string name="session_label">Session</string>
     <string name="btn_prepare_vpn">Подключить</string>
     <string name="btn_stop_vpn">Отключить</string>
     <string name="btn_test_api">Проверить /actuator/health</string>

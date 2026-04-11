@@ -25,9 +25,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.myvpn.app.MainViewModel
 import com.myvpn.app.R
@@ -53,17 +55,15 @@ fun HomeScreen(
             modifier = modifier
                 .fillMaxSize()
                 .padding(horizontal = 20.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
                 text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground,
-            )
-            Text(
-                text = stringResource(R.string.screen_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextMuted,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
             )
 
             val statusText = when (viewModel.tunnelState) {
@@ -72,13 +72,15 @@ fun HomeScreen(
                 Tunnel.State.TOGGLE -> stringResource(R.string.vpn_status_turning)
             }
             Text(
-                text = "${stringResource(R.string.vpn_status_label)}: $statusText",
+                text = "${stringResource(R.string.status_label)}: $statusText",
                 style = MaterialTheme.typography.titleMedium,
                 color = when (viewModel.tunnelState) {
                     Tunnel.State.UP -> NeonCyan
                     Tunnel.State.DOWN -> TextMuted
                     Tunnel.State.TOGGLE -> NeonPurple
                 },
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
             )
 
             val session = viewModel.vpnSessionStartMs
@@ -86,11 +88,6 @@ fun HomeScreen(
                 SessionDurationLabel(startMs = session)
             }
 
-            Text(
-                text = stringResource(R.string.section_connection),
-                style = MaterialTheme.typography.titleMedium,
-                color = NeonPurple,
-            )
             VerticalSwipeVpnSlider(
                 tunnelState = viewModel.tunnelState,
                 onSwipeToConnect = onConnectClick,
@@ -100,13 +97,17 @@ fun HomeScreen(
             Column(
                 modifier = Modifier
                     .weight(1f)
+                    .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Text(
                     text = stringResource(R.string.section_api),
                     style = MaterialTheme.typography.titleMedium,
                     color = NeonPurple,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
                 )
                 OutlinedTextField(
                     value = viewModel.baseUrl,
@@ -145,6 +146,8 @@ fun HomeScreen(
                     text = stringResource(R.string.section_log),
                     style = MaterialTheme.typography.titleMedium,
                     color = NeonPurple,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
                 )
                 Card(
                     colors = CardDefaults.cardColors(
@@ -175,10 +178,15 @@ private fun SessionDurationLabel(startMs: Long) {
             tick++
         }
     }
-    val text = remember(startMs, tick) { "Сессия: ${formatSessionDuration(startMs)}" }
+    val sessionWord = stringResource(R.string.session_label)
+    val text = remember(startMs, tick, sessionWord) {
+        "$sessionWord: ${formatSessionDuration(startMs)}"
+    }
     Text(
         text = text,
         style = MaterialTheme.typography.titleMedium,
         color = NeonCyan,
+        modifier = Modifier.fillMaxWidth(),
+        textAlign = TextAlign.Center,
     )
 }
