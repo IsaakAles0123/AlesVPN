@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
 
 class MainViewModel : ViewModel() {
 
@@ -78,13 +79,20 @@ class MainViewModel : ViewModel() {
         val url = baseNormalized + "/actuator/health"
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val network = findNetworkBypassingVpn(context)
-                    ?: error(
-                        "Сеть вне VPN не найдена. Нужны INTERNET + ACCESS_NETWORK_STATE. " +
-                            "Или отключите WireGuard и повторите проверку API.",
-                    )
                 val u = URL(url)
-                val conn = network.openConnection(u) as HttpURLConnection
+                val host = u.host.lowercase(Locale.ROOT)
+                // 10.0.2.2 — хост ПК из официального эмулятора; привязка к «сети без VPN» часто
+                // не имеет маршрута до этого адреса → таймаут. 127.0.0.1 — для `adb reverse tcp:8080 tcp:8080`.
+                val conn: HttpURLConnection = if (isLocalDevHost(host)) {
+                    u.openConnection() as HttpURLConnection
+                } else {
+                    val network = findNetworkBypassingVpn(context)
+                        ?: error(
+                            "Сеть вне VPN не найдена. Нужны INTERNET + ACCESS_NETWORK_STATE. " +
+                                "Или отключите WireGuard и повторите проверку API.",
+                        )
+                    network.openConnection(u) as HttpURLConnection
+                }
                 conn.requestMethod = "GET"
                 conn.connectTimeout = 15_000
                 conn.readTimeout = 15_000
@@ -108,6 +116,12 @@ class MainViewModel : ViewModel() {
             return t
         }
         return "http://${t.trimStart('/')}"
+    }
+
+    /** Эмулятор / adb reverse / loopback: подключение без выбора Network (иначе часто connection refused/timeout). */
+    private fun isLocalDevHost(host: String): Boolean = when (host) {
+        "10.0.2.2", "10.0.3.2", "127.0.0.1", "localhost" -> true
+        else -> false
     }
 
     fun runSpeedTest(context: android.content.Context) {
