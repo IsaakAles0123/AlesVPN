@@ -21,7 +21,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -35,14 +34,13 @@ import androidx.compose.ui.unit.dp
 import com.myvpn.app.MainViewModel
 import com.myvpn.app.R
 import com.myvpn.app.ui.components.NeonBackground
-import com.myvpn.app.ui.components.VerticalSwipeVpnSlider
+import com.myvpn.app.ui.components.dashboard.VpnRefDashboard
+import com.myvpn.app.ui.components.dashboard.rememberMockServers
 import com.myvpn.app.ui.theme.AlesSpacing
 import com.myvpn.app.ui.theme.NeonCyan
 import com.myvpn.app.ui.theme.NeonPurple
 import com.myvpn.app.ui.theme.TextMuted
-import com.myvpn.app.ui.util.formatSessionDuration
 import com.wireguard.android.backend.Tunnel
-import kotlinx.coroutines.delay
 
 @Composable
 fun HomeScreen(
@@ -52,6 +50,9 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
 ) {
     val ctx = LocalContext.current
+    val servers = rememberMockServers()
+    var selectedServerIndex by remember { mutableIntStateOf(0) }
+
     NeonBackground {
         Column(
             modifier = modifier
@@ -63,40 +64,28 @@ fun HomeScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(AlesSpacing.section),
         ) {
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-            )
-
-            val statusText = when (viewModel.tunnelState) {
-                Tunnel.State.UP -> stringResource(R.string.vpn_status_on)
-                Tunnel.State.DOWN -> stringResource(R.string.vpn_status_off)
-                Tunnel.State.TOGGLE -> stringResource(R.string.vpn_status_turning)
-            }
-            Text(
-                text = "${stringResource(R.string.status_label)}: $statusText",
-                style = MaterialTheme.typography.titleMedium,
-                color = when (viewModel.tunnelState) {
-                    Tunnel.State.UP -> NeonCyan
-                    Tunnel.State.DOWN -> TextMuted
-                    Tunnel.State.TOGGLE -> NeonPurple
-                },
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-            )
-
-            val session = viewModel.vpnSessionStartMs
-            if (session != null && viewModel.tunnelState == Tunnel.State.UP) {
-                SessionDurationLabel(startMs = session)
-            }
-
-            VerticalSwipeVpnSlider(
+            VpnRefDashboard(
                 tunnelState = viewModel.tunnelState,
-                onSwipeToConnect = onConnectClick,
-                onSwipeToDisconnect = onStopClick,
+                sessionStartMs = viewModel.vpnSessionStartMs,
+                servers = servers,
+                selectedIndex = selectedServerIndex,
+                onSelectServer = { selectedServerIndex = it },
+                onProfileClick = {
+                    Toast.makeText(ctx, R.string.app_name, Toast.LENGTH_SHORT).show()
+                },
+                onPlusClick = {
+                    Toast.makeText(ctx, "Get Plus", Toast.LENGTH_SHORT).show()
+                },
+                onPowerClick = {
+                    when (viewModel.tunnelState) {
+                        Tunnel.State.DOWN -> onConnectClick()
+                        Tunnel.State.UP -> onStopClick()
+                        Tunnel.State.TOGGLE -> Unit
+                    }
+                },
+                downloadMbps = "—",
+                uploadMbps = "—",
+                modifier = Modifier.fillMaxWidth(),
             )
 
             Column(
@@ -170,29 +159,6 @@ fun HomeScreen(
             }
         }
     }
-}
-
-@Composable
-private fun SessionDurationLabel(startMs: Long) {
-    var tick by remember { mutableIntStateOf(0) }
-    LaunchedEffect(startMs) {
-        tick = 0
-        while (true) {
-            delay(1000)
-            tick++
-        }
-    }
-    val sessionWord = stringResource(R.string.session_label)
-    val text = remember(startMs, tick, sessionWord) {
-        "$sessionWord: ${formatSessionDuration(startMs)}"
-    }
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
-        color = NeonCyan,
-        modifier = Modifier.fillMaxWidth(),
-        textAlign = TextAlign.Center,
-    )
 }
 
 @Composable

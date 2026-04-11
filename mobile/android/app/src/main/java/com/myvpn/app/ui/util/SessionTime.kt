@@ -12,3 +12,13 @@ fun formatSessionDuration(startMs: Long): String {
         String.format("%d:%02d", m, s)
     }
 }
+
+/** Формат как на LED-табло: часы не обрезаются (до 99+ часов). */
+fun formatSessionDurationHms(startMs: Long): String {
+    val elapsed = (System.currentTimeMillis() - startMs).coerceAtLeast(0L)
+    val totalSec = elapsed / 1000
+    val h = totalSec / 3600
+    val m = (totalSec % 3600) / 60
+    val s = totalSec % 60
+    return String.format("%02d:%02d:%02d", h, m, s)
+}
