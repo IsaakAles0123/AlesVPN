@@ -74,7 +74,8 @@ class MainViewModel : ViewModel() {
             onError("empty_url")
             return
         }
-        val url = trimmed.trimEnd('/') + "/actuator/health"
+        val baseNormalized = normalizeHttpBase(trimmed)
+        val url = baseNormalized + "/actuator/health"
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val network = findNetworkBypassingVpn(context)
@@ -98,6 +99,15 @@ class MainViewModel : ViewModel() {
                 withContext(Dispatchers.Main) { onError(e.message ?: e.toString()) }
             }
         }
+    }
+
+    /** Дописывает http:// если пользователь ввёл только host:port (иначе URL без схемы даёт «no protocol»). */
+    private fun normalizeHttpBase(base: String): String {
+        val t = base.trim().trimEnd('/')
+        if (t.startsWith("http://", ignoreCase = true) || t.startsWith("https://", ignoreCase = true)) {
+            return t
+        }
+        return "http://${t.trimStart('/')}"
     }
 
     fun runSpeedTest(context: android.content.Context) {
