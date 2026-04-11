@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -49,6 +50,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.myvpn.app.ui.theme.AlesSpacing
 import com.myvpn.app.ui.theme.NeonCyan
 import com.wireguard.android.backend.Tunnel
 import kotlinx.coroutines.launch
@@ -90,10 +92,10 @@ fun VerticalSwipeVpnSlider(
             } else {
                 "Нажмите STOP, чтобы отключить"
             },
-            color = Color(0xFF8B92A8),
-            fontSize = 13.sp,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 8.dp),
+            modifier = Modifier.padding(bottom = AlesSpacing.small),
         )
 
         BoxWithConstraints(

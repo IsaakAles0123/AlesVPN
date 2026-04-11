@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -35,6 +36,7 @@ import com.myvpn.app.MainViewModel
 import com.myvpn.app.R
 import com.myvpn.app.ui.components.NeonBackground
 import com.myvpn.app.ui.components.VerticalSwipeVpnSlider
+import com.myvpn.app.ui.theme.AlesSpacing
 import com.myvpn.app.ui.theme.NeonCyan
 import com.myvpn.app.ui.theme.NeonPurple
 import com.myvpn.app.ui.theme.TextMuted
@@ -54,9 +56,12 @@ fun HomeScreen(
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 24.dp),
+                .padding(
+                    horizontal = AlesSpacing.screenHorizontal,
+                    vertical = AlesSpacing.screenVertical,
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(AlesSpacing.section),
         ) {
             Text(
                 text = stringResource(R.string.app_name),
@@ -100,25 +105,21 @@ fun HomeScreen(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(AlesSpacing.item),
             ) {
-                Text(
-                    text = stringResource(R.string.section_api),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = NeonPurple,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                )
+                SectionHeader(text = stringResource(R.string.section_api))
                 OutlinedTextField(
                     value = viewModel.baseUrl,
                     onValueChange = viewModel::updateBaseUrl,
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
                     label = { Text(stringResource(R.string.hint_api)) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = NeonPurple,
-                        unfocusedBorderColor = TextMuted,
+                        unfocusedBorderColor = TextMuted.copy(alpha = 0.5f),
                         focusedLabelColor = NeonCyan,
+                        unfocusedLabelColor = TextMuted,
                         cursorColor = NeonCyan,
                     ),
                 )
@@ -136,33 +137,36 @@ fun HomeScreen(
                             )
                         }
                     },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = NeonPurple),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                    contentPadding = PaddingValues(vertical = 14.dp),
                 ) {
-                    Text(stringResource(R.string.btn_test_api))
+                    Text(
+                        text = stringResource(R.string.btn_test_api),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
                 }
 
-                Text(
+                SectionHeader(
                     text = stringResource(R.string.section_log),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = NeonPurple,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = AlesSpacing.small),
                 )
                 Card(
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
                     ),
+                    shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
                         text = viewModel.logText.ifEmpty { "—" },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(12.dp),
+                        modifier = Modifier.padding(AlesSpacing.cardInner),
                     )
                 }
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(AlesSpacing.section))
             }
         }
     }
@@ -187,6 +191,20 @@ private fun SessionDurationLabel(startMs: Long) {
         style = MaterialTheme.typography.titleMedium,
         color = NeonCyan,
         modifier = Modifier.fillMaxWidth(),
+        textAlign = TextAlign.Center,
+    )
+}
+
+@Composable
+private fun SectionHeader(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        color = NeonPurple,
+        modifier = modifier.fillMaxWidth(),
         textAlign = TextAlign.Center,
     )
 }
