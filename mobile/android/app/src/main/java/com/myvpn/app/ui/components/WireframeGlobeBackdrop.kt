@@ -179,46 +179,21 @@ fun WireframeGlobeBackdrop(
                 }
             }
 
-            // Экватор — многослойное свечение
-            val eqPath = Path()
-            var eqFirst = true
-            var lonEq = -88f
-            while (lonEq <= 88f) {
-                val p = project(0f, lonEq)
-                if (p != null) {
-                    if (eqFirst) {
-                        eqPath.moveTo(p.x, p.y)
-                        eqFirst = false
-                    } else {
-                        eqPath.lineTo(p.x, p.y)
-                    }
-                }
-                lonEq += 2.5f
-            }
-            val eqBase = 1.1.dp.toPx()
-            for (layer in 5 downTo 0) {
-                val sw = eqBase * (layer + 1) * 0.85f
-                val alpha = 0.04f + (5 - layer) * 0.055f
-                drawPath(
-                    path = eqPath,
-                    color = Color.White.copy(alpha = alpha.coerceIn(0.04f, 0.32f)),
-                    style = Stroke(width = sw),
-                )
-            }
+            // Экватор не рисуем — многослойные белые штрихи воспринимались как полоса через UI
         }
 
-        // Ободок (френель)
+        // Ободок (френель), без яркой белой каймы снизу
         drawCircle(
-            color = Color(0xFFC4B8FF).copy(alpha = 0.22f),
+            color = Color(0xFFC4B8FF).copy(alpha = 0.18f),
             radius = r,
             center = Offset(cx, cy),
-            style = Stroke(width = 1.8.dp.toPx()),
+            style = Stroke(width = 1.6.dp.toPx()),
         )
         drawCircle(
-            color = Color.White.copy(alpha = 0.08f),
-            radius = r + 1.5.dp.toPx(),
+            color = NeonPurple.copy(alpha = 0.12f),
+            radius = r + 1.2.dp.toPx(),
             center = Offset(cx, cy),
-            style = Stroke(width = 1.dp.toPx()),
+            style = Stroke(width = 0.8.dp.toPx()),
         )
 
         // Подписи созвездий

@@ -14,6 +14,7 @@
         <item name="android:colorBackground">@color/surface</item>
         <item name="android:statusBarColor">#FF050508</item>
         <item name="android:navigationBarColor">#FF050508</item>
+        <item name="android:navigationBarDividerColor" tools:targetApi="28">@android:color/transparent</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
     </style>
