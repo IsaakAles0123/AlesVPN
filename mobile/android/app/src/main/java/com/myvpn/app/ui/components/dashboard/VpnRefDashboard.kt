@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
@@ -149,7 +148,8 @@ fun GlobePowerCluster(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(248.dp),
+            .height(272.dp),
+        contentAlignment = Alignment.Center,
     ) {
         val ringAlphas = listOf(0.14f, 0.10f, 0.06f, 0.04f)
         ringAlphas.forEachIndexed { i, a ->
@@ -157,7 +157,6 @@ fun GlobePowerCluster(
                 modifier = Modifier
                     .size((140 + i * 28).dp)
                     .align(Alignment.Center)
-                    .offset(y = (-36).dp)
                     .border(
                         width = 2.dp,
                         brush = Brush.sweepGradient(
@@ -174,8 +173,7 @@ fun GlobePowerCluster(
         androidx.compose.material3.FilledIconButton(
             onClick = { if (enabled) onPowerClick() },
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 2.dp)
+                .align(Alignment.Center)
                 .size(88.dp),
             enabled = enabled,
             shape = CircleShape,
