@@ -125,7 +125,7 @@ internal object CelestialGlobeData {
          * Сердце: параметрическая кривая; долгота смещена ещё левее (~1–1.5 см на экране).
          */
         Constellation(
-            "Samira",
+            "",
             listOf(
                 33.2f to -46.0f,
                 34.2f to -45.7f,

@@ -228,7 +228,7 @@ fun WireframeGlobeBackdrop(
         )
         val placed = mutableListOf<LabelBounds>()
 
-        CelestialGlobeData.namedConstellations.find { it.name == "Samira" }?.let { samira ->
+        CelestialGlobeData.namedConstellations.find { it.starsLatLon.size == 18 }?.let { samira ->
             var sx = 0f
             var cnt = 0
             var topY = Float.POSITIVE_INFINITY
