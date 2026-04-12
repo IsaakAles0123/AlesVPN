@@ -14,7 +14,8 @@ internal object CelestialGlobeData {
         val edges: List<Pair<Int, Int>>,
     )
 
-    private val named: List<Constellation> = listOf(
+    /** Только классические созвездия — линии и подписи (без сетки мини-астеризмов, они налезали друг на друга). */
+    val namedConstellations: List<Constellation> = listOf(
         Constellation(
             "Aquila",
             listOf(18f to -8f, 22f to -5f, 26f to -3f, 24f to 2f, 20f to 0f),
@@ -121,71 +122,4 @@ internal object CelestialGlobeData {
             listOf(0 to 1, 1 to 2, 2 to 3, 3 to 0),
         ),
     )
-
-    /** Мини-астеризмы без подписей — заполняют сферу. */
-    private fun miniAsterisms(): List<Constellation> = buildList {
-        var idx = 0
-        for (latBase in -65..55 step 14) {
-            for (lonBase in -60..50 step 16) {
-                val pattern = idx % 6
-                val lat0 = latBase.toFloat() + (idx % 3) * 2f
-                val lo = lonBase.toFloat() + (idx % 4) * 1.5f
-                val stars = when (pattern) {
-                    0 -> listOf(
-                        lat0 to lo,
-                        lat0 + 5f to lo + 4f,
-                        lat0 + 9f to lo + 2f,
-                        lat0 + 6f to lo - 3f,
-                    )
-                    1 -> listOf(
-                        lat0 to lo,
-                        lat0 to lo + 6f,
-                        lat0 + 6f to lo + 6f,
-                        lat0 + 6f to lo,
-                    )
-                    2 -> listOf(
-                        lat0 to lo,
-                        lat0 + 4f to lo + 5f,
-                        lat0 + 8f to lo + 2f,
-                        lat0 + 5f to lo - 4f,
-                        lat0 + 1f to lo - 3f,
-                    )
-                    3 -> listOf(
-                        lat0 to lo,
-                        lat0 + 7f to lo,
-                        lat0 + 4f to lo + 5f,
-                    )
-                    4 -> listOf(
-                        lat0 to lo,
-                        lat0 + 3f to lo + 6f,
-                        lat0 + 7f to lo + 3f,
-                        lat0 + 5f to lo - 2f,
-                    )
-                    else -> listOf(
-                        lat0 to lo,
-                        lat0 + 6f to lo + 3f,
-                        lat0 + 3f to lo - 4f,
-                    )
-                }
-                val edges = when (stars.size) {
-                    3 -> listOf(0 to 1, 1 to 2)
-                    4 -> listOf(0 to 1, 1 to 2, 2 to 3, 3 to 0)
-                    5 -> listOf(0 to 1, 1 to 2, 2 to 3, 3 to 4)
-                    else -> listOf(0 to 1, 1 to 2)
-                }
-                add(
-                    Constellation(
-                        name = "",
-                        starsLatLon = stars.map { (la, lon) ->
-                            la.coerceIn(-86f, 86f) to lon.coerceIn(-88f, 88f)
-                        },
-                        edges = edges,
-                    ),
-                )
-                idx++
-            }
-        }
-    }
-
-    val constellations: List<Constellation> = named + miniAsterisms()
 }

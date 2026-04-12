@@ -20,6 +20,20 @@ import kotlin.math.hypot
 import kotlin.math.sin
 import kotlin.random.Random
 
+private data class LabelBounds(
+    val left: Float,
+    val top: Float,
+    val right: Float,
+    val bottom: Float,
+) {
+    /** Пересечение с зазором [pad] между прямоугольниками. */
+    fun overlaps(o: LabelBounds, pad: Float): Boolean {
+        val h = left <= o.right + pad && right + pad >= o.left
+        val v = top <= o.bottom + pad && bottom + pad >= o.top
+        return h && v
+    }
+}
+
 private fun normalizeLonDeg(deg: Float): Float {
     var d = deg % 360f
     if (d > 180f) d -= 360f
@@ -148,7 +162,7 @@ fun WireframeGlobeBackdrop(
 
             // Линии созвездий
             val linePaint = Stroke(width = 1.1.dp.toPx())
-            CelestialGlobeData.constellations.forEach { con ->
+            CelestialGlobeData.namedConstellations.forEach { con ->
                 con.edges.forEach { (ia, ib) ->
                     val a = con.starsLatLon.getOrNull(ia) ?: return@forEach
                     val b = con.starsLatLon.getOrNull(ib) ?: return@forEach
@@ -191,13 +205,29 @@ fun WireframeGlobeBackdrop(
             style = Stroke(width = 0.8.dp.toPx()),
         )
 
-        // Подписи созвездий
+        // Подписи: центр по астеризму, сдвиги при пересечении с уже размещёнными
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.argb(200, 230, 228, 255)
-            textSize = 11.dp.toPx()
+            textSize = 10.5.dp.toPx()
             typeface = android.graphics.Typeface.create(android.graphics.Typeface.SANS_SERIF, android.graphics.Typeface.NORMAL)
         }
-        CelestialGlobeData.constellations.forEach { con ->
+        val fm = labelPaint.fontMetrics
+        val pad = 4.dp.toPx()
+        val nudgePx = 13.dp.toPx()
+        val nudges = listOf(
+            Offset(0f, 0f),
+            Offset(0f, -nudgePx),
+            Offset(nudgePx, 0f),
+            Offset(-nudgePx, 0f),
+            Offset(0f, nudgePx),
+            Offset(nudgePx * 0.85f, -nudgePx * 0.85f),
+            Offset(-nudgePx * 0.85f, -nudgePx * 0.85f),
+            Offset(nudgePx, nudgePx),
+            Offset(-nudgePx, nudgePx),
+        )
+        val placed = mutableListOf<LabelBounds>()
+        val candidates = CelestialGlobeData.namedConstellations.mapNotNull { con ->
+            if (con.name.isBlank()) return@mapNotNull null
             var sx = 0f
             var sy = 0f
             var cnt = 0
@@ -207,10 +237,25 @@ fun WireframeGlobeBackdrop(
                 sy += p.y
                 cnt++
             }
-            if (cnt == 0 || con.name.isBlank()) return@forEach
-            val ox = sx / cnt - con.name.length * labelPaint.textSize * 0.22f
-            val oy = sy / cnt - labelPaint.textSize * 0.85f
-            drawContext.canvas.nativeCanvas.drawText(con.name, ox, oy, labelPaint)
+            if (cnt == 0) return@mapNotNull null
+            Triple(con.name, sx / cnt, sy / cnt)
+        }.sortedBy { it.third }
+
+        for ((name, mx, my) in candidates) {
+            val textW = labelPaint.measureText(name)
+            val halfW = textW / 2f
+            val baseline = my - fm.ascent * 0.35f
+            for (nudge in nudges) {
+                val left = mx - halfW + nudge.x
+                val right = mx + halfW + nudge.x
+                val top = baseline + fm.ascent + nudge.y
+                val bottom = baseline + fm.descent + nudge.y
+                val rect = LabelBounds(left, top, right, bottom)
+                if (placed.any { rect.overlaps(it, pad) }) continue
+                drawContext.canvas.nativeCanvas.drawText(name, left, baseline + nudge.y, labelPaint)
+                placed.add(rect)
+                break
+            }
         }
 
         }

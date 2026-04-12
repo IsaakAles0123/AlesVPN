@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.PaddingValues
@@ -47,9 +46,6 @@ import com.myvpn.app.ui.theme.NeonPurple
 import com.myvpn.app.ui.theme.NeonPurpleDim
 import com.myvpn.app.ui.theme.TextMuted
 import com.wireguard.android.backend.Tunnel
-
-/** Высота полосы карусели + зазор: кнопка с кольцами выше, карусель поверх глобуса */
-private val CarouselStackClearance = 140.dp
 
 data class MockServer(
     val id: String,
@@ -290,29 +286,20 @@ fun VpnRefDashboard(
             ServerLocationPill(server = selected)
             DotMatrixSessionTimer(tunnelState = tunnelState, sessionStartMs = sessionStartMs)
         }
-        // Глобус — в NeonBackground; здесь кнопка над «куполом», карусель снизу поверх него (z-index)
-        Box(
+        GlobePowerCluster(
+            tunnelState = tunnelState,
+            onPowerClick = onPowerClick,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .zIndex(1f),
+        )
+        ServerCarousel(
+            servers = servers,
+            selectedIndex = selectedIndex,
+            onSelect = onSelectServer,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(420.dp),
-        ) {
-            GlobePowerCluster(
-                tunnelState = tunnelState,
-                onPowerClick = onPowerClick,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .offset(y = -CarouselStackClearance)
-                    .zIndex(0f),
-            )
-            ServerCarousel(
-                servers = servers,
-                selectedIndex = selectedIndex,
-                onSelect = onSelectServer,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .zIndex(1f),
-            )
-        }
+                .zIndex(1f),
+        )
     }
 }
