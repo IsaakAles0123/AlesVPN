@@ -1,11 +1,12 @@
 package com.myvpn.app.ui.screens
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -36,12 +37,9 @@ fun HomeScreen(
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .padding(
-                    horizontal = AlesSpacing.screenHorizontal,
-                    vertical = AlesSpacing.screenVertical,
-                ),
+                .padding(horizontal = AlesSpacing.screenHorizontal)
+                .padding(top = 8.dp, bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(AlesSpacing.section),
         ) {
             VpnRefDashboard(
                 tunnelState = viewModel.tunnelState,
@@ -61,7 +59,7 @@ fun HomeScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .fillMaxHeight(),
             )
         }
     }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -266,13 +267,21 @@ fun VpnRefDashboard(
 ) {
     val selected = servers.getOrElse(selectedIndex) { servers.first() }
     Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(AlesSpacing.section),
+        modifier = modifier
+            .fillMaxWidth()
+            .fillMaxHeight(),
+        verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        RefTopBar(onPlusClick = onPlusClick)
-        ServerLocationPill(server = selected)
-        DotMatrixSessionTimer(tunnelState = tunnelState, sessionStartMs = sessionStartMs)
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(AlesSpacing.section),
+        ) {
+            RefTopBar(onPlusClick = onPlusClick)
+            ServerLocationPill(server = selected)
+            DotMatrixSessionTimer(tunnelState = tunnelState, sessionStartMs = sessionStartMs)
+        }
         GlobePowerCluster(tunnelState = tunnelState, onPowerClick = onPowerClick)
         ServerCarousel(
             servers = servers,
