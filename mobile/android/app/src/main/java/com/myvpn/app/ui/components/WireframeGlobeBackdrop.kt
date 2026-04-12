@@ -243,7 +243,7 @@ fun WireframeGlobeBackdrop(
                 val sPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     color = android.graphics.Color.argb(235, 245, 230, 255)
                     textSize = 13.5.dp.toPx()
-                    typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                    typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
                 }
                 val fmS = sPaint.fontMetrics
                 val letter = "S"
