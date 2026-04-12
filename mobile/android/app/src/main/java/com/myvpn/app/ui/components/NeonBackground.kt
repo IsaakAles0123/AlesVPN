@@ -35,9 +35,9 @@ fun NeonBackground(content: @Composable BoxScope.() -> Unit) {
     ) {
         WireframeGlobeBackdrop(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
+                .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .offset(y = 48.dp),
+                .offset(y = 52.dp),
         )
         Box(
             modifier = Modifier

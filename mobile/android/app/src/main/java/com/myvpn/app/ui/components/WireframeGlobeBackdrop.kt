@@ -20,7 +20,8 @@ import kotlin.math.hypot
 import kotlin.math.sin
 import kotlin.random.Random
 
-private val GlobeBackdropHeight = 480.dp
+/** Высота «купола»: нижняя граница — горизонтальный срез (как у линии до секции API). */
+private val GlobeBackdropHeight = 300.dp
 
 private fun normalizeLonDeg(deg: Float): Float {
     var d = deg % 360f
@@ -42,10 +43,11 @@ fun WireframeGlobeBackdrop(
             .height(GlobeBackdropHeight),
     ) {
         val w = size.width
-        val h = size.height
+        val hCanvas = size.height
         val cx = w / 2f
-        val cy = h * 0.42f
-        val r = minOf(w, h) * 0.5f
+        // Центр сферы ниже верха: верх касается y=0, низ уходит за Canvas — срез по низу блока.
+        val r = maxOf(w * 0.48f, hCanvas * 0.58f)
+        val cy = r
         val lonRot = CelestialGlobeData.LonRotationDeg
         val disc = Path().apply {
             addOval(
@@ -115,7 +117,7 @@ fun WireframeGlobeBackdrop(
             val dustRandom = Random(31415)
 
             // Млечный Путь — плотная дуга мелкой пыли
-            repeat(520) {
+            repeat(780) {
                 val t = dustRandom.nextFloat()
                 val lat = (sin(t * Math.PI.toFloat() * 2.3f) * 38f + dustRandom.nextFloat() * 6f - 3f).coerceIn(-72f, 72f)
                 val lon = -55f + t * 115f + (dustRandom.nextFloat() - 0.5f) * 8f
@@ -131,11 +133,11 @@ fun WireframeGlobeBackdrop(
             }
 
             // Фоновые звёзды
-            repeat(340) {
+            repeat(520) {
                 val lat = bgRandom.nextFloat() * 160f - 80f
                 val lon = bgRandom.nextFloat() * 160f - 80f
                 val p = project(lat, lon) ?: return@repeat
-                if (hypot((p.x - cx).toDouble(), (p.y - cy).toDouble()) > r * 0.98) return@repeat
+                if (hypot((p.x - cx).toDouble(), (p.y - cy).toDouble()) > r * 0.995) return@repeat
                 val rad = 0.45f + bgRandom.nextFloat() * 1.35f
                 val a = 0.15f + bgRandom.nextFloat() * 0.45f
                 drawCircle(
@@ -231,7 +233,7 @@ fun WireframeGlobeBackdrop(
                 sy += p.y
                 cnt++
             }
-            if (cnt == 0) return@forEach
+            if (cnt == 0 || con.name.isBlank()) return@forEach
             val ox = sx / cnt - con.name.length * labelPaint.textSize * 0.22f
             val oy = sy / cnt - labelPaint.textSize * 0.85f
             drawContext.canvas.nativeCanvas.drawText(con.name, ox, oy, labelPaint)
