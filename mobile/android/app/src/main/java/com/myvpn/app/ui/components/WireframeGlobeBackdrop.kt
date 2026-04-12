@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.dp
 import com.myvpn.app.ui.theme.NeonPurple
@@ -69,6 +70,9 @@ fun WireframeGlobeBackdrop(
             if (z <= r * 0.012f) return null
             return Offset(cx + x, cy - y)
         }
+
+        // Только северная полусфера (y на экране ≤ cy — экватор как нижний срез)
+        clipRect(left = 0f, top = 0f, right = w, bottom = cy) {
 
         // Внешнее мягкое свечение
         drawCircle(
@@ -237,6 +241,8 @@ fun WireframeGlobeBackdrop(
             val ox = sx / cnt - con.name.length * labelPaint.textSize * 0.22f
             val oy = sy / cnt - labelPaint.textSize * 0.85f
             drawContext.canvas.nativeCanvas.drawText(con.name, ox, oy, labelPaint)
+        }
+
         }
     }
 }
