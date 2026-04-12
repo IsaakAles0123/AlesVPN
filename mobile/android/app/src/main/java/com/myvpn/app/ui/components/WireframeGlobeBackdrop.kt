@@ -3,7 +3,6 @@ package com.myvpn.app.ui.components
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -21,9 +20,6 @@ import kotlin.math.hypot
 import kotlin.math.sin
 import kotlin.random.Random
 
-/** Высота слоя фона: шар занижен внутри канваса, низ привязан к экрану (см. NeonBackground). */
-private val GlobeBackdropHeight = 460.dp
-
 private fun normalizeLonDeg(deg: Float): Float {
     var d = deg % 360f
     if (d > 180f) d -= 360f
@@ -38,17 +34,16 @@ private fun normalizeLonDeg(deg: Float): Float {
 fun WireframeGlobeBackdrop(
     modifier: Modifier = Modifier,
 ) {
+    // Высоту задаёт родитель (NeonBackground). Не добавлять сюда .height(...) — иначе внешний размер игнорируется.
     Canvas(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(GlobeBackdropHeight),
+        modifier = modifier.fillMaxWidth(),
     ) {
         val w = size.width
         val hCanvas = size.height
         val cx = w / 2f
-        // Сфера по центру нижней половины канваса — не прижата к status bar, экватор ниже.
-        val r = minOf(w * 0.46f, hCanvas * 0.42f)
-        val cy = hCanvas * 0.52f
+        // Центр сферы ниже середины канваса — купол у нижнего края экрана, не «в середине UI».
+        val r = minOf(w * 0.48f, hCanvas * 0.44f)
+        val cy = hCanvas * 0.78f
         val lonRot = CelestialGlobeData.LonRotationDeg
         val disc = Path().apply {
             addOval(
