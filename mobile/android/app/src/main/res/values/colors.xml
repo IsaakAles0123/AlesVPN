@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#0D1B2A</color>
+    <!-- Фон иконки / splash — как тёмный фон AlesVPN -->
+    <color name="ic_launcher_background">#FF0A0612</color>
     <color name="primary">#1B4965</color>
     <color name="on_primary">#FFFFFF</color>
     <color name="primary_container">#C9E6FF</color>
