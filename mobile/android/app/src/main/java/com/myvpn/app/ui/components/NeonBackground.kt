@@ -37,8 +37,8 @@ fun NeonBackground(content: @Composable BoxScope.() -> Unit) {
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(540.dp)
-                .offset(y = 36.dp),
+                .height(640.dp)
+                .offset(y = 0.dp),
         )
         Box(
             modifier = Modifier

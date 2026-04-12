@@ -20,7 +20,6 @@ import com.myvpn.app.MainViewModel
 import com.myvpn.app.ui.components.NeonBackground
 import com.myvpn.app.ui.components.dashboard.VpnRefDashboard
 import com.myvpn.app.ui.components.dashboard.rememberMockServers
-import com.myvpn.app.ui.theme.AlesSpacing
 import com.wireguard.android.backend.Tunnel
 
 @Composable
@@ -39,8 +38,7 @@ fun HomeScreen(
             modifier = modifier
                 .fillMaxSize()
                 .navigationBarsPadding()
-                .padding(horizontal = AlesSpacing.screenHorizontal)
-                .padding(top = 8.dp, bottom = 6.dp),
+                .padding(top = 8.dp, bottom = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             VpnRefDashboard(

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -46,6 +47,9 @@ import com.myvpn.app.ui.theme.NeonPurple
 import com.myvpn.app.ui.theme.NeonPurpleDim
 import com.myvpn.app.ui.theme.TextMuted
 import com.wireguard.android.backend.Tunnel
+
+/** Высота полосы карусели + зазор: кнопка с кольцами выше, карусель поверх глобуса */
+private val CarouselStackClearance = 140.dp
 
 data class MockServer(
     val id: String,
@@ -202,7 +206,7 @@ fun ServerCarousel(
     LazyRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(top = 0.dp, bottom = 2.dp),
+        contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 0.dp, bottom = 4.dp),
     ) {
         itemsIndexed(servers) { index, server ->
             val selected = index == selectedIndex
@@ -269,14 +273,16 @@ fun VpnRefDashboard(
     modifier: Modifier = Modifier,
 ) {
     val selected = servers.getOrElse(selectedIndex) { servers.first() }
-    Column(
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .fillMaxHeight(),
-        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .padding(horizontal = AlesSpacing.screenHorizontal),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(AlesSpacing.section),
         ) {
@@ -284,20 +290,28 @@ fun VpnRefDashboard(
             ServerLocationPill(server = selected)
             DotMatrixSessionTimer(tunnelState = tunnelState, sessionStartMs = sessionStartMs)
         }
-        Spacer(modifier = Modifier.weight(1f))
-        Column(
+        // Глобус — в NeonBackground; здесь кнопка над «куполом», карусель снизу поверх него (z-index)
+        Box(
             modifier = Modifier
+                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .offset(y = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(0.dp),
+                .height(420.dp),
         ) {
-            GlobePowerCluster(tunnelState = tunnelState, onPowerClick = onPowerClick)
+            GlobePowerCluster(
+                tunnelState = tunnelState,
+                onPowerClick = onPowerClick,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .offset(y = -CarouselStackClearance)
+                    .zIndex(0f),
+            )
             ServerCarousel(
                 servers = servers,
                 selectedIndex = selectedIndex,
                 onSelect = onSelectServer,
-                modifier = Modifier.offset(y = (-4).dp),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .zIndex(1f),
             )
         }
     }
