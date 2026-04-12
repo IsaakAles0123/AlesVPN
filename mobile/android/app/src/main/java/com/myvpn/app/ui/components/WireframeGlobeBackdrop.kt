@@ -230,16 +230,17 @@ fun WireframeGlobeBackdrop(
 
         CelestialGlobeData.namedConstellations.find { it.starsLatLon.size == 18 }?.let { samira ->
             var sx = 0f
+            var sy = 0f
             var cnt = 0
-            var topY = Float.POSITIVE_INFINITY
             samira.starsLatLon.forEach { (la, lo) ->
                 val p = project(la, lo) ?: return@forEach
                 sx += p.x
+                sy += p.y
                 cnt++
-                if (p.y < topY) topY = p.y
             }
             if (cnt > 0) {
                 val mx = sx / cnt
+                val my = sy / cnt
                 val sPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     color = android.graphics.Color.argb(235, 245, 230, 255)
                     textSize = 13.5.dp.toPx()
@@ -248,8 +249,7 @@ fun WireframeGlobeBackdrop(
                 val fmS = sPaint.fontMetrics
                 val letter = "S"
                 val sw = sPaint.measureText(letter)
-                val gap = 6.dp.toPx()
-                val baseline = topY - gap - fmS.descent
+                val baseline = my - (fmS.ascent + fmS.descent) / 2f
                 val left = mx - sw / 2f
                 val top = baseline + fmS.ascent
                 val bottom = baseline + fmS.descent
