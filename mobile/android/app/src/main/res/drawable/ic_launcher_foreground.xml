@@ -1,59 +1,87 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Полноразмерное лого под adaptive icon: диск + пояс + узел сети (VPN). -->
+<!--
+  Референс-стиль без чёрного пояса: диагональное кольцо (фиолет + циан),
+  треугольник VPN, магента справа внизу, концентрики.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Диск на весь круг -->
+
     <path
-        android:pathData="M54,0C24.18,0,0,24.18,0,54s24.18,54,54,54,54,-24.18,54,-54S83.82,0,54,0z"
-        android:fillColor="#1A0F2E" />
-    <path
-        android:pathData="M54,6C27.5,6,6,27.5,6,54s21.5,48,48,48,48,-21.5,48,-48S80.5,6,54,6z"
-        android:fillColor="#2A1845" />
-    <!-- Верхний блик -->
-    <path
-        android:pathData="M54,10C30,10,10,32,10,54c0,8,2,16,6,22C22,58,18,48,18,38c0,-14,16,-24,36,-24s36,10,36,24c0,10,-4,20,-12,28c4,-6,6,-14,6,-22C88,32,78,10,54,10z"
-        android:fillColor="#3D2560"
-        android:fillAlpha="0.55" />
-    <!-- Пояс (внешняя дуга) -->
-    <path
-        android:pathData="M12,56 Q54,34 96,56"
-        android:strokeWidth="5"
-        android:strokeColor="#B366FF"
+        android:pathData="M54,54m-50,0a50,50 0 1,1 100,0a50,50 0 1,1 -100,0"
         android:fillColor="@android:color/transparent"
-        android:strokeLineCap="round" />
-    <!-- Пояс (внутренняя подсветка) -->
-    <path
-        android:pathData="M14,57 Q54,40 94,57"
-        android:strokeWidth="2.5"
-        android:strokeColor="#00E5FF"
-        android:fillColor="@android:color/transparent"
-        android:strokeLineCap="round" />
-    <!-- Нижняя дуга пояса -->
-    <path
-        android:pathData="M12,56 Q54,78 96,56"
-        android:strokeWidth="3.5"
+        android:strokeWidth="0.7"
         android:strokeColor="#6B3FA0"
-        android:fillColor="@android:color/transparent"
-        android:strokeLineCap="round"
-        android:strokeAlpha="0.85" />
-    <!-- Узлы соединения (VPN) -->
+        android:strokeAlpha="0.22" />
     <path
-        android:pathData="M54,30m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0"
+        android:pathData="M54,54m-38,0a38,38 0 1,1 76,0a38,38 0 1,1 -76,0"
+        android:fillColor="@android:color/transparent"
+        android:strokeWidth="0.6"
+        android:strokeColor="#B366FF"
+        android:strokeAlpha="0.18" />
+    <path
+        android:pathData="M54,54m-26,0a26,26 0 1,1 52,0a26,26 0 1,1 -52,0"
+        android:fillColor="@android:color/transparent"
+        android:strokeWidth="0.5"
+        android:strokeColor="#00E5FF"
+        android:strokeAlpha="0.12" />
+
+    <path
+        android:pathData="M54,2C26.4,2,4,26.4,4,54s22.4,52,50,52,50,-22.4,50,-50S81.6,2,54,2z"
+        android:fillColor="#12081F" />
+    <path
+        android:pathData="M54,8C29.7,8,10,29.7,10,54s19.7,46,44,46,44,-19.7,44,-44S78.3,8,54,8z"
+        android:fillColor="#1E1240" />
+    <path
+        android:pathData="M54,12C32.5,12,14,33.5,14,54s18.5,42,40,42,40,-18.5,40,-40S75.5,12,54,12z"
+        android:fillColor="#2A1848" />
+    <path
+        android:pathData="M28,28 Q38,18 52,20 Q44,32 32,44 Q26,38 28,28z"
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.12" />
+
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:rotation="-26">
+        <path
+            android:pathData="M4,54 Q54,24 104,54"
+            android:strokeWidth="10"
+            android:strokeColor="#B366FF"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"
+            android:strokeAlpha="0.55" />
+        <path
+            android:pathData="M6,54 Q54,82 102,54"
+            android:strokeWidth="6"
+            android:strokeColor="#6B3FA0"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"
+            android:strokeAlpha="0.45" />
+        <path
+            android:pathData="M14,54 Q54,34 94,54"
+            android:strokeWidth="2.2"
+            android:strokeColor="#00E5FF"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round" />
+    </group>
+
+    <path
+        android:pathData="M54,28 L36,72 L72,72 Z"
+        android:fillColor="@android:color/transparent"
+        android:strokeWidth="1.8"
+        android:strokeColor="#FFFFFF"
+        android:strokeAlpha="0.45"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M54,32a3.8,3.8 0 1,1 0,0.02z"
         android:fillColor="#F5F0FF" />
     <path
-        android:pathData="M34,68m-3.5,0a3.5,3.5 0 1,1 7,0a3.5,3.5 0 1,1 -7,0"
+        android:pathData="M36,72a3.8,3.8 0 1,1 0,0.02z"
         android:fillColor="#00E5FF" />
     <path
-        android:pathData="M74,68m-3.5,0a3.5,3.5 0 1,1 7,0a3.5,3.5 0 1,1 -7,0"
-        android:fillColor="#B366FF" />
-    <path
-        android:pathData="M54,34 L38,65 M54,34 L70,65 M38,65 L70,65"
-        android:strokeWidth="2"
-        android:strokeColor="#FFFFFF"
-        android:strokeAlpha="0.35"
-        android:fillColor="@android:color/transparent"
-        android:strokeLineCap="round" />
+        android:pathData="M72,72a3.8,3.8 0 1,1 0,0.02z"
+        android:fillColor="#E040FB" />
 </vector>
