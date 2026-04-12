@@ -16,7 +16,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.myvpn.app.ui.theme.BackgroundDeep
-import com.myvpn.app.ui.theme.NeonCyan
 import com.myvpn.app.ui.theme.NeonPurple
 
 @Composable
@@ -38,8 +37,8 @@ fun NeonBackground(content: @Composable BoxScope.() -> Unit) {
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(460.dp)
-                .offset(y = (-32).dp),
+                .height(520.dp)
+                .offset(y = 8.dp),
         )
         Box(
             modifier = Modifier
@@ -56,11 +55,14 @@ fun NeonBackground(content: @Composable BoxScope.() -> Unit) {
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .offset(x = (-80).dp, y = 40.dp)
-                .size(240.dp)
+                .offset(x = (-60).dp, y = 24.dp)
+                .size(200.dp)
                 .background(
                     brush = Brush.radialGradient(
-                        colors = listOf(NeonCyan.copy(alpha = 0.18f), Color.Transparent),
+                        colors = listOf(
+                            NeonPurple.copy(alpha = 0.14f),
+                            Color.Transparent,
+                        ),
                     ),
                     shape = CircleShape,
                 ),

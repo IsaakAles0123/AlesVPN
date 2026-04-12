@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
@@ -147,16 +149,15 @@ fun GlobePowerCluster(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(280.dp),
-        contentAlignment = Alignment.Center,
+            .height(248.dp),
     ) {
-        // Кольца за глобусом (первый слой — сзади)
         val ringAlphas = listOf(0.14f, 0.10f, 0.06f, 0.04f)
         ringAlphas.forEachIndexed { i, a ->
             Box(
                 modifier = Modifier
                     .size((140 + i * 28).dp)
                     .align(Alignment.Center)
+                    .offset(y = (-36).dp)
                     .border(
                         width = 2.dp,
                         brush = Brush.sweepGradient(
@@ -172,7 +173,10 @@ fun GlobePowerCluster(
         }
         androidx.compose.material3.FilledIconButton(
             onClick = { if (enabled) onPowerClick() },
-            modifier = Modifier.size(88.dp),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 2.dp)
+                .size(88.dp),
             enabled = enabled,
             shape = CircleShape,
             colors = androidx.compose.material3.IconButtonDefaults.filledIconButtonColors(
@@ -199,7 +203,7 @@ fun ServerCarousel(
     LazyRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 4.dp),
+        contentPadding = PaddingValues(top = 0.dp, bottom = 2.dp),
     ) {
         itemsIndexed(servers) { index, server ->
             val selected = index == selectedIndex
@@ -270,7 +274,6 @@ fun VpnRefDashboard(
         modifier = modifier
             .fillMaxWidth()
             .fillMaxHeight(),
-        verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Column(
@@ -282,11 +285,18 @@ fun VpnRefDashboard(
             ServerLocationPill(server = selected)
             DotMatrixSessionTimer(tunnelState = tunnelState, sessionStartMs = sessionStartMs)
         }
-        GlobePowerCluster(tunnelState = tunnelState, onPowerClick = onPowerClick)
-        ServerCarousel(
-            servers = servers,
-            selectedIndex = selectedIndex,
-            onSelect = onSelectServer,
-        )
+        Spacer(modifier = Modifier.weight(1f))
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            GlobePowerCluster(tunnelState = tunnelState, onPowerClick = onPowerClick)
+            ServerCarousel(
+                servers = servers,
+                selectedIndex = selectedIndex,
+                onSelect = onSelectServer,
+            )
+        }
     }
 }
