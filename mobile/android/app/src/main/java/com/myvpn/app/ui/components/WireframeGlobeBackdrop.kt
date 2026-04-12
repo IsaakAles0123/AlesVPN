@@ -1,6 +1,7 @@
 package com.myvpn.app.ui.components
 
 import android.graphics.Paint
+import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
@@ -226,6 +227,37 @@ fun WireframeGlobeBackdrop(
             Offset(-nudgePx, nudgePx),
         )
         val placed = mutableListOf<LabelBounds>()
+
+        CelestialGlobeData.namedConstellations.find { it.name == "Samira" }?.let { samira ->
+            var sx = 0f
+            var cnt = 0
+            var topY = Float.POSITIVE_INFINITY
+            samira.starsLatLon.forEach { (la, lo) ->
+                val p = project(la, lo) ?: return@forEach
+                sx += p.x
+                cnt++
+                if (p.y < topY) topY = p.y
+            }
+            if (cnt > 0) {
+                val mx = sx / cnt
+                val sPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = android.graphics.Color.argb(235, 245, 230, 255)
+                    textSize = 13.5.dp.toPx()
+                    typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                }
+                val fmS = sPaint.fontMetrics
+                val letter = "S"
+                val sw = sPaint.measureText(letter)
+                val gap = 6.dp.toPx()
+                val baseline = topY - gap - fmS.descent
+                val left = mx - sw / 2f
+                val top = baseline + fmS.ascent
+                val bottom = baseline + fmS.descent
+                drawContext.canvas.nativeCanvas.drawText(letter, left, baseline, sPaint)
+                placed.add(LabelBounds(left, top, left + sw, bottom))
+            }
+        }
+
         val candidates = CelestialGlobeData.namedConstellations.mapNotNull { con ->
             if (con.name.isBlank()) return@mapNotNull null
             var sx = 0f
