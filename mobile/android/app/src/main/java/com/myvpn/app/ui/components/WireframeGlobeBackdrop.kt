@@ -20,8 +20,8 @@ import kotlin.math.hypot
 import kotlin.math.sin
 import kotlin.random.Random
 
-/** Высота «купола»: нижняя граница — горизонтальный срез (как у линии до секции API). */
-private val GlobeBackdropHeight = 300.dp
+/** Высота слоя фона: шар занижен внутри канваса, низ привязан к экрану (см. NeonBackground). */
+private val GlobeBackdropHeight = 460.dp
 
 private fun normalizeLonDeg(deg: Float): Float {
     var d = deg % 360f
@@ -45,9 +45,9 @@ fun WireframeGlobeBackdrop(
         val w = size.width
         val hCanvas = size.height
         val cx = w / 2f
-        // Центр сферы ниже верха: верх касается y=0, низ уходит за Canvas — срез по низу блока.
-        val r = maxOf(w * 0.48f, hCanvas * 0.58f)
-        val cy = r
+        // Сфера по центру нижней половины канваса — не прижата к status bar, экватор ниже.
+        val r = minOf(w * 0.46f, hCanvas * 0.42f)
+        val cy = hCanvas * 0.52f
         val lonRot = CelestialGlobeData.LonRotationDeg
         val disc = Path().apply {
             addOval(
