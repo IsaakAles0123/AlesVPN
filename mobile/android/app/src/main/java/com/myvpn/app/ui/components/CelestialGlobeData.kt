@@ -63,6 +63,8 @@ internal object CelestialGlobeData {
     private const val MinCenterSepDiscLastResort = 0.24f
     private const val MinHeartsForLetters = 3
     private const val TargetHearts = 6
+    /** До этого числа заполняем случайно/сеткой; 6-е сердце — отдельно в левом нижнем секторе. */
+    private const val HeartsBeforeLowerLeftSlot = 5
     private const val RandomPlacementAttempts = 900
 
     private val placementRandom = Random(90210)
@@ -145,27 +147,35 @@ internal object CelestialGlobeData {
             }
         }
 
-        /** Добавить недостающее сердце в левом нижнем секторе глобуса. */
+        /** 6-е сердце — в левом нижнем секторе; пороги постепенно ослабляем. */
         fun tryFillLowerLeft() {
-            if (chosen.size >= TargetHearts) return
+            if (chosen.size != HeartsBeforeLowerLeftSlot) return
             val tiers = listOf(
                 MinCenterDistanceRelaxedDeg to MinCenterSepDiscRelaxed,
                 18f to MinCenterSepDiscLastResort,
-                17f to MinCenterSepDiscLastResort,
+                17f to 0.22f,
+                16f to 0.18f,
+                15f to 0.15f,
+                14f to 0.12f,
             )
             for ((minDeg, minDisc) in tiers) {
                 for (c in lowerLeftHeartCandidates) {
-                    if (chosen.size >= TargetHearts) return
                     if (canAdd(c, minDeg, minDisc)) {
                         chosen.add(c)
                         return
                     }
                 }
             }
-            repeat(120) {
-                if (chosen.size >= TargetHearts) return
-                val c = (21f + placementRandom.nextFloat() * 8f) to (-50f + placementRandom.nextFloat() * 14f)
-                if (canAdd(c, 16f, 0.22f)) {
+            repeat(2500) {
+                val c = (19f + placementRandom.nextFloat() * 11f) to (-52f + placementRandom.nextFloat() * 16f)
+                if (canAdd(c, 14f, 0.12f)) {
+                    chosen.add(c)
+                    return
+                }
+            }
+            repeat(800) {
+                val c = (19f + placementRandom.nextFloat() * 11f) to (-52f + placementRandom.nextFloat() * 16f)
+                if (canAdd(c, 12f, 0.10f)) {
                     chosen.add(c)
                     return
                 }
@@ -183,13 +193,13 @@ internal object CelestialGlobeData {
             return false
         }
 
-        while (chosen.size < TargetHearts) {
+        while (chosen.size < HeartsBeforeLowerLeftSlot) {
             if (tryPlace(MinCenterDistanceDeg, MinCenterSepDisc)) continue
             if (tryPlace(MinCenterDistanceRelaxedDeg, MinCenterSepDiscRelaxed)) continue
             break
         }
 
-        if (chosen.size < TargetHearts) {
+        if (chosen.size < HeartsBeforeLowerLeftSlot) {
             val grid = buildList {
                 for (lat in 18..50 step 8) {
                     for (lon in -48..48 step 9) {
@@ -198,12 +208,31 @@ internal object CelestialGlobeData {
                 }
             }.shuffled(placementRandom)
             for (c in grid) {
-                if (chosen.size >= TargetHearts) break
+                if (chosen.size >= HeartsBeforeLowerLeftSlot) break
                 if (canAdd(c, MinCenterDistanceRelaxedDeg, MinCenterSepDiscRelaxed)) chosen.add(c)
             }
         }
 
         tryFillLowerLeft()
+
+        while (chosen.size < TargetHearts) {
+            if (tryPlace(MinCenterDistanceRelaxedDeg, MinCenterSepDiscRelaxed)) continue
+            if (tryPlace(18f, MinCenterSepDiscLastResort)) continue
+            break
+        }
+        if (chosen.size < TargetHearts) {
+            val grid2 = buildList {
+                for (lat in 18..50 step 8) {
+                    for (lon in -48..48 step 9) {
+                        add(lat.toFloat() to lon.toFloat())
+                    }
+                }
+            }.shuffled(placementRandom)
+            for (c in grid2) {
+                if (chosen.size >= TargetHearts) break
+                if (canAdd(c, 17f, MinCenterSepDiscLastResort)) chosen.add(c)
+            }
+        }
 
         val rest = chosen.drop(1).shuffled(placementRandom)
         return listOf(chosen.first()) + rest
