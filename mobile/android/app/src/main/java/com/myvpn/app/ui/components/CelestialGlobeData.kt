@@ -1,10 +1,12 @@
 package com.myvpn.app.ui.components
 
 import kotlin.math.hypot
+import kotlin.random.Random
 
 /**
  * Только сердца в форме Samira; буквы S / A / L — на первых трёх сердцах в [WireframeGlobeBackdrop].
- * Центры подобраны с минимальным расстоянием в (lat, lon), чтобы фигуры не слипались.
+ * Центры — случайные на куполе при фиксированном якоре Samira; минимальное расстояние между центрами,
+ * чтобы сердца не сливались.
  */
 internal object CelestialGlobeData {
 
@@ -46,78 +48,59 @@ internal object CelestialGlobeData {
         }
     }
 
-    private const val MinCenterDistanceDeg = 13f
-    private const val MinCenterDistanceRelaxedDeg = 8.5f
+    /** Минимум между центрами (градусы); форма сердца ~±10° от центра — иначе фигуры слипаются. */
+    private const val MinCenterDistanceDeg = 26f
+    private const val MinCenterDistanceRelaxedDeg = 21f
     private const val MinHeartsForLetters = 3
-    private const val MaxHearts = 12
+    private const val MaxHearts = 10
+    private const val RandomPlacementAttempts = 650
+
+    private val placementRandom = Random(90210)
 
     private fun distance(a: Pair<Float, Float>, b: Pair<Float, Float>): Float =
         hypot((a.first - b.first).toDouble(), (a.second - b.second).toDouble()).toFloat()
 
-    private fun isDuplicate(c: Pair<Float, Float>, chosen: List<Pair<Float, Float>>): Boolean =
-        chosen.any { distance(it, c) < 0.08f }
+    private fun randomLat(): Float = placementRandom.nextFloat() * 148f - 74f
+    private fun randomLon(): Float = placementRandom.nextFloat() * 172f - 86f
 
     /**
-     * Кандидаты по куполу; сначала заполняем около якоря, затем — восточнее (правый видимый край глобуса).
+     * Якорь Samira фиксирован; остальные центры — случайные точки на куполе с минимальной дистанцией.
      */
     private fun heartCenters(): List<Pair<Float, Float>> {
         val anchor = refLat to refLon
-        val candidates = buildList {
-            for (lat in -18..58 step 11) {
-                for (lon in -78..78 step 13) {
-                    add(lat.toFloat() to lon.toFloat())
-                }
-            }
-            for (lat in -14..54 step 9) {
-                for (lon in 5..82 step 9) {
-                    add(lat.toFloat() to lon.toFloat())
-                }
-            }
-            add(-8f to -62f)
-            add(44f to 48f)
-            add(52f to -58f)
-            add(38f to 62f)
-            add(22f to 70f)
-            add(48f to 58f)
-            add(12f to 45f)
-        }.distinctBy { "${it.first},${it.second}" }
-
         val chosen = mutableListOf(anchor)
 
-        fun addGreedy(order: List<Pair<Float, Float>>, minD: Float) {
-            for (c in order) {
-                if (chosen.size >= MaxHearts) return
-                if (isDuplicate(c, chosen)) continue
-                if (chosen.all { distance(c, it) >= minD }) chosen.add(c)
+        fun tryPlace(minD: Float): Boolean {
+            repeat(RandomPlacementAttempts) {
+                val c = randomLat() to randomLon()
+                if (chosen.all { distance(c, it) >= minD }) {
+                    chosen.add(c)
+                    return true
+                }
             }
+            return false
         }
 
-        val restNear = candidates
-            .filter { distance(it, anchor) >= 0.01f }
-            .sortedBy { distance(it, anchor) }
-        addGreedy(restNear, MinCenterDistanceDeg)
-
-        val eastFirst = candidates
-            .filter { !isDuplicate(it, chosen) && it.second > 5f }
-            .sortedByDescending { it.second }
-        addGreedy(eastFirst, MinCenterDistanceDeg)
-
-        val restAny = candidates
-            .filter { !isDuplicate(it, chosen) }
-            .sortedBy { distance(it, anchor) }
-        addGreedy(restAny, MinCenterDistanceDeg)
+        while (chosen.size < MaxHearts) {
+            if (tryPlace(MinCenterDistanceDeg)) continue
+            if (tryPlace(MinCenterDistanceRelaxedDeg)) continue
+            break
+        }
 
         if (chosen.size < MinHeartsForLetters) {
-            addGreedy(
-                candidates.filter { !isDuplicate(it, chosen) }.sortedBy { distance(it, anchor) },
-                MinCenterDistanceRelaxedDeg,
-            )
+            val grid = buildList {
+                for (lat in -60..60 step 14) {
+                    for (lon in -80..80 step 16) {
+                        add(lat.toFloat() to lon.toFloat())
+                    }
+                }
+            }.shuffled(placementRandom)
+            for (c in grid) {
+                if (chosen.size >= MinHeartsForLetters) break
+                if (chosen.any { distance(c, it) < 0.05f }) continue
+                if (chosen.all { distance(c, it) >= MinCenterDistanceRelaxedDeg }) chosen.add(c)
+            }
         }
-
-        val eastFill = candidates
-            .filter { !isDuplicate(it, chosen) && it.second >= 12f }
-            .sortedByDescending { it.second }
-        addGreedy(eastFill, MinCenterDistanceRelaxedDeg)
 
         return chosen
     }

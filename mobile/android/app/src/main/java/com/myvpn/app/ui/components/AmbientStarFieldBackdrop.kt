@@ -16,6 +16,9 @@ import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.random.Random
 
+private const val AmbientStarCount = 520 * 5
+private const val AmbientConstellationGroups = 28 * 5
+
 /**
  * Звёзды и мини-созвездия по всему экрану, кроме глобуса, верхней полосы (таймер/шапка),
  * центральной зоны кнопки питания и нижней полосы с карточками серверов.
@@ -51,11 +54,15 @@ fun AmbientStarFieldBackdrop(modifier: Modifier = Modifier) {
                 return true
             }
 
-            repeat(520) {
+            var starsDrawn = 0
+            var starGuard = 0
+            while (starsDrawn < AmbientStarCount && starGuard < AmbientStarCount * 8) {
+                starGuard++
                 val x = rnd.nextFloat() * w
                 val y = rnd.nextFloat() * h
                 val p = Offset(x, y)
-                if (!allowed(p)) return@repeat
+                if (!allowed(p)) continue
+                starsDrawn++
                 val rad = 0.35f + starRnd.nextFloat() * 1.15f
                 val a = 0.12f + starRnd.nextFloat() * 0.42f
                 val c = if (starRnd.nextBoolean()) {
@@ -68,10 +75,13 @@ fun AmbientStarFieldBackdrop(modifier: Modifier = Modifier) {
 
             val lineColor = Color(0xFFC8C0E8).copy(alpha = 0.22f)
             val lineW = with(density) { 0.85.dp.toPx() }
-            repeat(28) {
+            var groupsDrawn = 0
+            var groupGuard = 0
+            while (groupsDrawn < AmbientConstellationGroups && groupGuard < AmbientConstellationGroups * 40) {
+                groupGuard++
                 val anchorX = rnd.nextFloat() * w
                 val anchorY = rnd.nextFloat() * h
-                if (!allowed(Offset(anchorX, anchorY))) return@repeat
+                if (!allowed(Offset(anchorX, anchorY))) continue
                 val n = 4 + rnd.nextInt(4)
                 val pts = ArrayList<Offset>(n)
                 repeat(n) { i ->
@@ -80,7 +90,8 @@ fun AmbientStarFieldBackdrop(modifier: Modifier = Modifier) {
                     val o = Offset(px.coerceIn(0f, w), py.coerceIn(0f, h))
                     if (allowed(o)) pts.add(o)
                 }
-                if (pts.size < 3) return@repeat
+                if (pts.size < 3) continue
+                groupsDrawn++
                 for (i in 0 until pts.lastIndex) {
                     val a = pts[i]
                     val b = pts[i + 1]
