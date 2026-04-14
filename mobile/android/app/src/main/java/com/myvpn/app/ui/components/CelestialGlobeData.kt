@@ -2,6 +2,7 @@ package com.myvpn.app.ui.components
 
 import kotlin.math.cos
 import kotlin.math.hypot
+import kotlin.math.sin
 import kotlin.random.Random
 
 /**
@@ -50,11 +51,15 @@ internal object CelestialGlobeData {
     }
 
     /**
-     * Минимум между центрами (градусы). Форма сердца ~±10° от центра; [WireframeGlobeBackdrop] обрезает
-     * срез по горизонту через центр сферы — низкие широты и задняя сторона не рисуются.
+     * В градусах — грубый зазор; точное разведение — [MinCenterSepDisc] в координатах проекции диска.
      */
-    private const val MinCenterDistanceDeg = 22f
-    private const val MinCenterDistanceRelaxedDeg = 18f
+    private const val MinCenterDistanceDeg = 24f
+    private const val MinCenterDistanceRelaxedDeg = 20f
+    /** Доля радиуса диска: вершины не ближе к лимбу (сплющивание у краёв слева/справа/сверху). */
+    private const val DiscEdgeMargin = 0.15f
+    /** Минимум расстояния центров в нормированных координатах проекции (как [WireframeGlobeBackdrop.project]). */
+    private const val MinCenterSepDisc = 0.34f
+    private const val MinCenterSepDiscRelaxed = 0.30f
     private const val MinHeartsForLetters = 3
     private const val TargetHearts = 6
     private const val RandomPlacementAttempts = 900
@@ -68,47 +73,69 @@ internal object CelestialGlobeData {
         return d
     }
 
-    /** Как в [WireframeGlobeBackdrop.project]: точка на передней стороне купола. */
-    private fun isFacingViewer(latDeg: Float, lonDeg: Float): Boolean {
+    /** Ортогональная проекция на диск (r=1), как в [WireframeGlobeBackdrop.project] без масштаба экрана. */
+    private fun projectDiscXY(latDeg: Float, lonDeg: Float): Pair<Float, Float>? {
         val lat = Math.toRadians(latDeg.toDouble()).toFloat()
         val lon = Math.toRadians(normalizeLonDeg(lonDeg + LonRotationDeg).toDouble()).toFloat()
+        val x = cos(lat) * sin(lon)
+        val y = sin(lat)
         val z = cos(lat) * cos(lon)
-        return z > 0.018f
+        if (z <= 0.018f) return null
+        return x to y
+    }
+
+    private fun discRadial(xy: Pair<Float, Float>): Float =
+        hypot(xy.first.toDouble(), xy.second.toDouble()).toFloat()
+
+    private fun discCenterSep(a: Pair<Float, Float>, b: Pair<Float, Float>): Float {
+        val pa = projectDiscXY(a.first, a.second) ?: return 0f
+        val pb = projectDiscXY(b.first, b.second) ?: return 0f
+        return hypot((pa.first - pb.first).toDouble(), (pa.second - pb.second).toDouble()).toFloat()
     }
 
     /**
-     * Все вершины на видимой стороне купола; верх сердца не у самого обода диска ([maxLat] ниже —
-     * иначе фигуры у верхнего края глобуса сплющиваются).
+     * Все вершины внутри диска с отступом от лимба (иначе сплющивание у верхнего и боковых краёв).
      */
-    private fun heartFullyOnVisibleDome(center: Pair<Float, Float>): Boolean {
+    private fun heartFitsProjection(center: Pair<Float, Float>): Boolean {
         val pts = heartAt(center.first, center.second)
         val minLat = pts.minOf { it.first }
         val maxLat = pts.maxOf { it.first }
         if (minLat < 16f || maxLat > 58f) return false
-        return pts.all { (la, lo) -> isFacingViewer(la, lo) }
+        val maxR = 1f - DiscEdgeMargin
+        for ((la, lo) in pts) {
+            val xy = projectDiscXY(la, lo) ?: return false
+            if (discRadial(xy) > maxR) return false
+        }
+        return true
     }
 
     private fun distance(a: Pair<Float, Float>, b: Pair<Float, Float>): Float =
         hypot((a.first - b.first).toDouble(), (a.second - b.second).toDouble()).toFloat()
 
-    /** Центры ниже по куполу (не у верхнего обода), диапазон согласован с [heartFullyOnVisibleDome]. */
+    /** Узкий диапазон долготы — меньше точек у восточного/западного лимба. */
     private fun randomLat(): Float = 20f + placementRandom.nextFloat() * 26f
-    private fun randomLon(): Float = placementRandom.nextFloat() * 172f - 86f
+    private fun randomLon(): Float = -50f + placementRandom.nextFloat() * 100f
 
     /**
      * Ровно [TargetHearts]: якорь Samira, остальные — случайные допустимые центры; порядок 1..5 перемешан.
      */
     private fun heartCenters(): List<Pair<Float, Float>> {
         val anchor = refLat to refLon
-        require(heartFullyOnVisibleDome(anchor)) { "anchor heart must fit dome" }
+        check(heartFitsProjection(anchor)) { "anchor heart must fit projection" }
 
         val chosen = mutableListOf(anchor)
 
-        fun tryPlace(minD: Float): Boolean {
+        fun canAdd(c: Pair<Float, Float>, minDeg: Float, minDisc: Float): Boolean {
+            if (!heartFitsProjection(c)) return false
+            return chosen.all { o ->
+                distance(c, o) >= minDeg && discCenterSep(c, o) >= minDisc
+            }
+        }
+
+        fun tryPlace(minDeg: Float, minDisc: Float): Boolean {
             repeat(RandomPlacementAttempts) {
                 val c = randomLat() to randomLon()
-                if (!heartFullyOnVisibleDome(c)) return@repeat
-                if (chosen.all { distance(c, it) >= minD }) {
+                if (canAdd(c, minDeg, minDisc)) {
                     chosen.add(c)
                     return true
                 }
@@ -117,24 +144,22 @@ internal object CelestialGlobeData {
         }
 
         while (chosen.size < TargetHearts) {
-            if (tryPlace(MinCenterDistanceDeg)) continue
-            if (tryPlace(MinCenterDistanceRelaxedDeg)) continue
+            if (tryPlace(MinCenterDistanceDeg, MinCenterSepDisc)) continue
+            if (tryPlace(MinCenterDistanceRelaxedDeg, MinCenterSepDiscRelaxed)) continue
             break
         }
 
         if (chosen.size < TargetHearts) {
             val grid = buildList {
                 for (lat in 18..50 step 8) {
-                    for (lon in -78..78 step 11) {
+                    for (lon in -48..48 step 9) {
                         add(lat.toFloat() to lon.toFloat())
                     }
                 }
             }.shuffled(placementRandom)
             for (c in grid) {
                 if (chosen.size >= TargetHearts) break
-                if (!heartFullyOnVisibleDome(c)) continue
-                if (chosen.any { distance(c, it) < 0.05f }) continue
-                if (chosen.all { distance(c, it) >= MinCenterDistanceRelaxedDeg }) chosen.add(c)
+                if (canAdd(c, MinCenterDistanceRelaxedDeg, MinCenterSepDiscRelaxed)) chosen.add(c)
             }
         }
 
