@@ -1,7 +1,5 @@
 package com.myvpn.app.ui.components
 
-import android.graphics.Paint
-import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
@@ -13,27 +11,12 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.dp
 import com.myvpn.app.ui.theme.NeonPurple
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
 import kotlin.random.Random
-
-private data class LabelBounds(
-    val left: Float,
-    val top: Float,
-    val right: Float,
-    val bottom: Float,
-) {
-    /** Пересечение с зазором [pad] между прямоугольниками. */
-    fun overlaps(o: LabelBounds, pad: Float): Boolean {
-        val h = left <= o.right + pad && right + pad >= o.left
-        val v = top <= o.bottom + pad && bottom + pad >= o.top
-        return h && v
-    }
-}
 
 private fun normalizeLonDeg(deg: Float): Float {
     var d = deg % 360f
@@ -161,34 +144,6 @@ fun WireframeGlobeBackdrop(
                 )
             }
 
-            // Линии созвездий
-            val linePaint = Stroke(width = 1.1.dp.toPx())
-            CelestialGlobeData.namedConstellations.forEach { con ->
-                con.edges.forEach { (ia, ib) ->
-                    val a = con.starsLatLon.getOrNull(ia) ?: return@forEach
-                    val b = con.starsLatLon.getOrNull(ib) ?: return@forEach
-                    val pa = project(a.first, a.second)
-                    val pb = project(b.first, b.second)
-                    if (pa != null && pb != null) {
-                        val path = Path().apply {
-                            moveTo(pa.x, pa.y)
-                            lineTo(pb.x, pb.y)
-                        }
-                        drawPath(
-                            path = path,
-                            color = Color(0xFFE8E8FF).copy(alpha = 0.42f),
-                            style = linePaint,
-                        )
-                    }
-                }
-                // Яркие узлы созвездий
-                con.starsLatLon.forEach { (la, lo) ->
-                    val p = project(la, lo) ?: return@forEach
-                    drawCircle(color = Color.White.copy(alpha = 0.88f), radius = 2.2.dp.toPx(), center = p)
-                    drawCircle(color = Color(0xFFB8A8FF).copy(alpha = 0.35f), radius = 4f, center = p)
-                }
-            }
-
             // Экватор не рисуем — многослойные белые штрихи воспринимались как полоса через UI
         }
 
@@ -205,92 +160,6 @@ fun WireframeGlobeBackdrop(
             center = Offset(cx, cy),
             style = Stroke(width = 0.8.dp.toPx()),
         )
-
-        // Подписи: центр по астеризму, сдвиги при пересечении с уже размещёнными
-        val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = android.graphics.Color.argb(200, 230, 228, 255)
-            textSize = 10.5.dp.toPx()
-            typeface = android.graphics.Typeface.create(android.graphics.Typeface.SANS_SERIF, android.graphics.Typeface.NORMAL)
-        }
-        val fm = labelPaint.fontMetrics
-        val pad = 4.dp.toPx()
-        val nudgePx = 13.dp.toPx()
-        val nudges = listOf(
-            Offset(0f, 0f),
-            Offset(0f, -nudgePx),
-            Offset(nudgePx, 0f),
-            Offset(-nudgePx, 0f),
-            Offset(0f, nudgePx),
-            Offset(nudgePx * 0.85f, -nudgePx * 0.85f),
-            Offset(-nudgePx * 0.85f, -nudgePx * 0.85f),
-            Offset(nudgePx, nudgePx),
-            Offset(-nudgePx, nudgePx),
-        )
-        val placed = mutableListOf<LabelBounds>()
-
-        // Буквы S / A / L — на первых трёх разных сердцах (S на якорном Samira)
-        val heartLetters = listOf("S", "A", "L")
-        CelestialGlobeData.namedConstellations.take(heartLetters.size).zip(heartLetters)
-            .forEach { (con, letter) ->
-                var sx = 0f
-                var sy = 0f
-                var cnt = 0
-                con.starsLatLon.forEach { (la, lo) ->
-                    val p = project(la, lo) ?: return@forEach
-                    sx += p.x
-                    sy += p.y
-                    cnt++
-                }
-                if (cnt > 0) {
-                    val mx = sx / cnt
-                    val my = sy / cnt
-                    val letterPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                        color = android.graphics.Color.argb(235, 245, 230, 255)
-                        textSize = 13.5.dp.toPx()
-                        typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
-                    }
-                    val fmS = letterPaint.fontMetrics
-                    val sw = letterPaint.measureText(letter)
-                    val baseline = my - (fmS.ascent + fmS.descent) / 2f
-                    val left = mx - sw / 2f
-                    val top = baseline + fmS.ascent
-                    val bottom = baseline + fmS.descent
-                    drawContext.canvas.nativeCanvas.drawText(letter, left, baseline, letterPaint)
-                    placed.add(LabelBounds(left, top, left + sw, bottom))
-                }
-            }
-
-        val candidates = CelestialGlobeData.namedConstellations.mapNotNull { con ->
-            if (con.name.isBlank()) return@mapNotNull null
-            var sx = 0f
-            var sy = 0f
-            var cnt = 0
-            con.starsLatLon.forEach { (la, lo) ->
-                val p = project(la, lo) ?: return@forEach
-                sx += p.x
-                sy += p.y
-                cnt++
-            }
-            if (cnt == 0) return@mapNotNull null
-            Triple(con.name, sx / cnt, sy / cnt)
-        }.sortedBy { it.third }
-
-        for ((name, mx, my) in candidates) {
-            val textW = labelPaint.measureText(name)
-            val halfW = textW / 2f
-            val baseline = my - fm.ascent * 0.35f
-            for (nudge in nudges) {
-                val left = mx - halfW + nudge.x
-                val right = mx + halfW + nudge.x
-                val top = baseline + fm.ascent + nudge.y
-                val bottom = baseline + fm.descent + nudge.y
-                val rect = LabelBounds(left, top, right, bottom)
-                if (placed.any { rect.overlaps(it, pad) }) continue
-                drawContext.canvas.nativeCanvas.drawText(name, left, baseline + nudge.y, labelPaint)
-                placed.add(rect)
-                break
-            }
-        }
 
         }
     }
