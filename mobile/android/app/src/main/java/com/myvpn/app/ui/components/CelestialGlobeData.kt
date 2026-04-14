@@ -147,16 +147,26 @@ internal object CelestialGlobeData {
             }
         }
 
-        /** 6-е сердце — в левом нижнем секторе; пороги постепенно ослабляем. */
-        fun tryFillLowerLeft() {
-            if (chosen.size != HeartsBeforeLowerLeftSlot) return
+        fun canAddDiscOnly(c: Pair<Float, Float>, minDisc: Float): Boolean {
+            if (!heartFitsProjection(c)) return false
+            return chosen.all { o -> discCenterSep(c, o) >= minDisc }
+        }
+
+        /**
+         * Шестое сердце — приоритетно левый нижний сектор (отриц. lon).
+         * Исчерпывающая сетка + очень слабые пороги, иначе плотные 5 сердец блокировали бы любое 6-е.
+         */
+        fun addSixthHeartLowerLeftGuaranteed() {
+            if (chosen.size >= TargetHearts) return
+            if (chosen.size < HeartsBeforeLowerLeftSlot) return
+
             val tiers = listOf(
                 MinCenterDistanceRelaxedDeg to MinCenterSepDiscRelaxed,
                 18f to MinCenterSepDiscLastResort,
-                17f to 0.22f,
-                16f to 0.18f,
-                15f to 0.15f,
-                14f to 0.12f,
+                16f to 0.20f,
+                14f to 0.14f,
+                12f to 0.10f,
+                10f to 0.08f,
             )
             for ((minDeg, minDisc) in tiers) {
                 for (c in lowerLeftHeartCandidates) {
@@ -166,18 +176,50 @@ internal object CelestialGlobeData {
                     }
                 }
             }
-            repeat(2500) {
-                val c = (19f + placementRandom.nextFloat() * 11f) to (-52f + placementRandom.nextFloat() * 16f)
-                if (canAdd(c, 14f, 0.12f)) {
+            repeat(4000) {
+                val c = (18f + placementRandom.nextFloat() * 14f) to (-54f + placementRandom.nextFloat() * 20f)
+                if (canAdd(c, 10f, 0.08f)) {
                     chosen.add(c)
                     return
                 }
             }
-            repeat(800) {
-                val c = (19f + placementRandom.nextFloat() * 11f) to (-52f + placementRandom.nextFloat() * 16f)
-                if (canAdd(c, 12f, 0.10f)) {
-                    chosen.add(c)
-                    return
+            // Плотная сетка «левый низ» в градусах
+            for (lat in 18..40) {
+                for (lon in -56..-24) {
+                    val c = lat.toFloat() to lon.toFloat()
+                    if (canAdd(c, 10f, 0.07f)) {
+                        chosen.add(c)
+                        return
+                    }
+                }
+            }
+            for (lat in 18..40) {
+                for (lon in -56..-24) {
+                    val c = lat.toFloat() to lon.toFloat()
+                    if (canAddDiscOnly(c, 0.06f)) {
+                        chosen.add(c)
+                        return
+                    }
+                }
+            }
+            for (lat in 16..42) {
+                for (lon in -58..-22) {
+                    val c = lat.toFloat() to lon.toFloat()
+                    if (canAddDiscOnly(c, 0.04f)) {
+                        chosen.add(c)
+                        return
+                    }
+                }
+            }
+            // Последний шанс: не наезжать на центры ближе 5° в (lat,lon)
+            for (lat in 17..41) {
+                for (lon in -58..-24) {
+                    val c = lat.toFloat() to lon.toFloat()
+                    if (!heartFitsProjection(c)) continue
+                    if (chosen.all { distance(c, it) >= 5f }) {
+                        chosen.add(c)
+                        return
+                    }
                 }
             }
         }
@@ -213,11 +255,12 @@ internal object CelestialGlobeData {
             }
         }
 
-        tryFillLowerLeft()
+        addSixthHeartLowerLeftGuaranteed()
 
         while (chosen.size < TargetHearts) {
             if (tryPlace(MinCenterDistanceRelaxedDeg, MinCenterSepDiscRelaxed)) continue
             if (tryPlace(18f, MinCenterSepDiscLastResort)) continue
+            if (tryPlace(16f, 0.18f)) continue
             break
         }
         if (chosen.size < TargetHearts) {
@@ -231,6 +274,32 @@ internal object CelestialGlobeData {
             for (c in grid2) {
                 if (chosen.size >= TargetHearts) break
                 if (canAdd(c, 17f, MinCenterSepDiscLastResort)) chosen.add(c)
+            }
+        }
+        if (chosen.size < TargetHearts) {
+            addSixthHeartLowerLeftGuaranteed()
+        }
+        // Последний резерв: одна точка на всей сетке купола
+        if (chosen.size < TargetHearts) {
+            outer@ for (lat in 20..48 step 3) {
+                for (lon in -70..70 step 4) {
+                    val c = lat.toFloat() to lon.toFloat()
+                    if (canAddDiscOnly(c, 0.03f)) {
+                        chosen.add(c)
+                        break@outer
+                    }
+                }
+            }
+        }
+        if (chosen.size < TargetHearts) {
+            outer@ for (lat in 18..52 step 2) {
+                for (lon in -78..78 step 3) {
+                    val c = lat.toFloat() to lon.toFloat()
+                    if (canAddDiscOnly(c, 0.025f)) {
+                        chosen.add(c)
+                        break@outer
+                    }
+                }
             }
         }
 
