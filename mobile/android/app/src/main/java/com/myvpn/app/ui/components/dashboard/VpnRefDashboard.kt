@@ -74,13 +74,6 @@ fun RefTopBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onKeySetupClick) {
-            Icon(
-                imageVector = Icons.Rounded.Settings,
-                contentDescription = "Ключ доступа",
-                tint = NeonCyan,
-            )
-        }
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(24.dp))
@@ -105,6 +98,13 @@ fun RefTopBar(
                 color = Color.White,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
+            )
+        }
+        IconButton(onClick = onKeySetupClick) {
+            Icon(
+                imageVector = Icons.Rounded.Settings,
+                contentDescription = "Ключ доступа",
+                tint = NeonCyan,
             )
         }
     }
