@@ -228,36 +228,37 @@ fun WireframeGlobeBackdrop(
         )
         val placed = mutableListOf<LabelBounds>()
 
-        // Буква «S» — только на первом (якорном) сердце Samira
-        CelestialGlobeData.namedConstellations.firstOrNull()?.let { samira ->
-            var sx = 0f
-            var sy = 0f
-            var cnt = 0
-            samira.starsLatLon.forEach { (la, lo) ->
-                val p = project(la, lo) ?: return@forEach
-                sx += p.x
-                sy += p.y
-                cnt++
-            }
-            if (cnt > 0) {
-                val mx = sx / cnt
-                val my = sy / cnt
-                val sPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = android.graphics.Color.argb(235, 245, 230, 255)
-                    textSize = 13.5.dp.toPx()
-                    typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+        // Буквы S / A / L — на первых трёх разных сердцах (S на якорном Samira)
+        val heartLetters = listOf("S", "A", "L")
+        CelestialGlobeData.namedConstellations.take(heartLetters.size).zip(heartLetters)
+            .forEach { (con, letter) ->
+                var sx = 0f
+                var sy = 0f
+                var cnt = 0
+                con.starsLatLon.forEach { (la, lo) ->
+                    val p = project(la, lo) ?: return@forEach
+                    sx += p.x
+                    sy += p.y
+                    cnt++
                 }
-                val fmS = sPaint.fontMetrics
-                val letter = "S"
-                val sw = sPaint.measureText(letter)
-                val baseline = my - (fmS.ascent + fmS.descent) / 2f
-                val left = mx - sw / 2f
-                val top = baseline + fmS.ascent
-                val bottom = baseline + fmS.descent
-                drawContext.canvas.nativeCanvas.drawText(letter, left, baseline, sPaint)
-                placed.add(LabelBounds(left, top, left + sw, bottom))
+                if (cnt > 0) {
+                    val mx = sx / cnt
+                    val my = sy / cnt
+                    val letterPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        color = android.graphics.Color.argb(235, 245, 230, 255)
+                        textSize = 13.5.dp.toPx()
+                        typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+                    }
+                    val fmS = letterPaint.fontMetrics
+                    val sw = letterPaint.measureText(letter)
+                    val baseline = my - (fmS.ascent + fmS.descent) / 2f
+                    val left = mx - sw / 2f
+                    val top = baseline + fmS.ascent
+                    val bottom = baseline + fmS.descent
+                    drawContext.canvas.nativeCanvas.drawText(letter, left, baseline, letterPaint)
+                    placed.add(LabelBounds(left, top, left + sw, bottom))
+                }
             }
-        }
 
         val candidates = CelestialGlobeData.namedConstellations.mapNotNull { con ->
             if (con.name.isBlank()) return@mapNotNull null

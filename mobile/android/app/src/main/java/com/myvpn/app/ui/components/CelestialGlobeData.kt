@@ -3,7 +3,7 @@ package com.myvpn.app.ui.components
 import kotlin.math.hypot
 
 /**
- * Только сердца в форме Samira; буква «S» рисуется на первом (якорном) сердце в [WireframeGlobeBackdrop].
+ * Только сердца в форме Samira; буквы S / A / L — на первых трёх сердцах в [WireframeGlobeBackdrop].
  * Центры подобраны с минимальным расстоянием в (lat, lon), чтобы фигуры не слипались.
  */
 internal object CelestialGlobeData {
@@ -47,6 +47,8 @@ internal object CelestialGlobeData {
     }
 
     private const val MinCenterDistanceDeg = 14f
+    private const val MinCenterDistanceRelaxedDeg = 9f
+    private const val MinHeartsForLetters = 3
     private const val MaxHearts = 6
 
     private fun distance(a: Pair<Float, Float>, b: Pair<Float, Float>): Float =
@@ -76,6 +78,16 @@ internal object CelestialGlobeData {
             if (chosen.size >= MaxHearts) break
             if (chosen.all { distance(c, it) >= MinCenterDistanceDeg }) {
                 chosen.add(c)
+            }
+        }
+        if (chosen.size < MinHeartsForLetters) {
+            val rest2 = candidates.filter { it !in chosen }.sortedBy { distance(it, anchor) }
+            for (c in rest2) {
+                if (chosen.size >= MaxHearts) break
+                if (chosen.size >= MinHeartsForLetters) break
+                if (chosen.all { distance(c, it) >= MinCenterDistanceRelaxedDeg }) {
+                    chosen.add(c)
+                }
             }
         }
         return chosen
