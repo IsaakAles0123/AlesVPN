@@ -16,9 +16,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import kotlin.math.max
+import kotlin.math.min
 import com.wireguard.android.backend.Tunnel
 import kotlinx.coroutines.delay
-import kotlin.math.min
 
 private const val ROWS = 7
 private const val COLS = 5
@@ -37,6 +38,17 @@ private fun pattern(ch: Char): Array<String> = when (ch) {
     ':' -> arrayOf(".....", "..#..", ".....", ".....", "..#..", ".....", ".....")
     '.' -> arrayOf(".....", ".....", ".....", ".....", ".....", "..#..", ".....")
     else -> Array(ROWS) { "....." }
+}
+
+/** Ширина матрицы при cell = 1px (средний зазор между символами 0.35). */
+private fun dotMatrixWidthUnitFactor(mainPart: String, fracPart: String): Float {
+    val g = 0.35f
+    fun f(s: String): Float {
+        if (s.isEmpty()) return 0f
+        val n = s.length
+        return n * COLS + (n - 1) * g
+    }
+    return f(mainPart) + 1.8f * g + f(fracPart)
 }
 
 private fun buildTimeString(elapsedMs: Long): Pair<String, String> {
@@ -81,21 +93,28 @@ fun DotMatrixSessionTimer(
     }
 
     val density = LocalDensity.current
-    val minCell = with(density) { 5.dp.toPx() }
-    val maxCell = with(density) { 9.dp.toPx() }
 
     BoxWithConstraints(
         modifier = modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center,
     ) {
+        val K = dotMatrixWidthUnitFactor(mainPart, fracPart)
+        val maxCellPx = with(density) { 11.dp.toPx() }
+        val wPx = with(density) { max(maxWidth.toPx(), 1f) }
+        val cellFitW = (wPx * 0.96f) / K
+        val cellPref = minOf(cellFitW, maxCellPx)
+        val canvasHeightDp = with(density) { (ROWS * cellPref).toDp() }
+
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .height(canvasHeightDp.coerceAtLeast(28.dp)),
         ) {
             val maxW = size.width
-            val cellGuess = maxW / (22f * 1.2f)
-            val cell = cellGuess.coerceIn(minCell, maxCell)
+            val maxH = size.height
+            var cell = (maxW * 0.96f) / K
+            cell = min(cell, maxH * 0.98f / ROWS)
+            cell = min(cell, maxCellPx)
             val dotR = cell * 0.32f
             val gapBetweenChars = cell * 0.35f
 
@@ -110,7 +129,7 @@ fun DotMatrixSessionTimer(
 
             val totalW = measureStringWidth(mainPart) + gapBetweenChars * 1.8f + measureStringWidth(fracPart)
             var startX = (maxW - totalW) / 2f
-            val startY = (size.height - ROWS * cell) / 2f
+            val startY = (maxH - ROWS * cell) / 2f
 
             val mainColor = if (active) primaryColor else secondaryColor.copy(alpha = 0.55f)
             val fracColor = secondaryColor.copy(alpha = if (active) 0.82f else 0.42f)
