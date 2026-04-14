@@ -1,5 +1,6 @@
 package com.myvpn.app.ui.components
 
+import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.random.Random
 
@@ -48,31 +49,64 @@ internal object CelestialGlobeData {
         }
     }
 
-    /** Минимум между центрами (градусы); форма сердца ~±10° от центра — иначе фигуры слипаются. */
-    private const val MinCenterDistanceDeg = 26f
-    private const val MinCenterDistanceRelaxedDeg = 21f
+    /**
+     * Минимум между центрами (градусы). Форма сердца ~±10° от центра; [WireframeGlobeBackdrop] обрезает
+     * срез по горизонту через центр сферы — низкие широты и задняя сторона не рисуются.
+     */
+    private const val MinCenterDistanceDeg = 22f
+    private const val MinCenterDistanceRelaxedDeg = 18f
     private const val MinHeartsForLetters = 3
-    private const val MaxHearts = 10
-    private const val RandomPlacementAttempts = 650
+    private const val TargetHearts = 6
+    private const val RandomPlacementAttempts = 900
 
     private val placementRandom = Random(90210)
+
+    private fun normalizeLonDeg(deg: Float): Float {
+        var d = deg % 360f
+        if (d > 180f) d -= 360f
+        if (d < -180f) d += 360f
+        return d
+    }
+
+    /** Как в [WireframeGlobeBackdrop.project]: точка на передней стороне купола. */
+    private fun isFacingViewer(latDeg: Float, lonDeg: Float): Boolean {
+        val lat = Math.toRadians(latDeg.toDouble()).toFloat()
+        val lon = Math.toRadians(normalizeLonDeg(lonDeg + LonRotationDeg).toDouble()).toFloat()
+        val z = cos(lat) * cos(lon)
+        return z > 0.018f
+    }
+
+    /**
+     * Все вершины сердца должны быть севернее «резака» экрана (sin(lat)>0) и с запасом,
+     * иначе часть контура пропадает в clipRect.
+     */
+    private fun heartFullyOnVisibleDome(center: Pair<Float, Float>): Boolean {
+        val pts = heartAt(center.first, center.second)
+        val minLat = pts.minOf { it.first }
+        val maxLat = pts.maxOf { it.first }
+        if (minLat < 14f || maxLat > 82f) return false
+        return pts.all { (la, lo) -> isFacingViewer(la, lo) }
+    }
 
     private fun distance(a: Pair<Float, Float>, b: Pair<Float, Float>): Float =
         hypot((a.first - b.first).toDouble(), (a.second - b.second).toDouble()).toFloat()
 
-    private fun randomLat(): Float = placementRandom.nextFloat() * 148f - 74f
+    private fun randomLat(): Float = 14f + placementRandom.nextFloat() * 64f
     private fun randomLon(): Float = placementRandom.nextFloat() * 172f - 86f
 
     /**
-     * Якорь Samira фиксирован; остальные центры — случайные точки на куполе с минимальной дистанцией.
+     * Ровно [TargetHearts]: якорь Samira, остальные — случайные допустимые центры; порядок 1..5 перемешан.
      */
     private fun heartCenters(): List<Pair<Float, Float>> {
         val anchor = refLat to refLon
+        require(heartFullyOnVisibleDome(anchor)) { "anchor heart must fit dome" }
+
         val chosen = mutableListOf(anchor)
 
         fun tryPlace(minD: Float): Boolean {
             repeat(RandomPlacementAttempts) {
                 val c = randomLat() to randomLon()
+                if (!heartFullyOnVisibleDome(c)) return@repeat
                 if (chosen.all { distance(c, it) >= minD }) {
                     chosen.add(c)
                     return true
@@ -81,28 +115,30 @@ internal object CelestialGlobeData {
             return false
         }
 
-        while (chosen.size < MaxHearts) {
+        while (chosen.size < TargetHearts) {
             if (tryPlace(MinCenterDistanceDeg)) continue
             if (tryPlace(MinCenterDistanceRelaxedDeg)) continue
             break
         }
 
-        if (chosen.size < MinHeartsForLetters) {
+        if (chosen.size < TargetHearts) {
             val grid = buildList {
-                for (lat in -60..60 step 14) {
-                    for (lon in -80..80 step 16) {
+                for (lat in 16..72 step 10) {
+                    for (lon in -78..78 step 11) {
                         add(lat.toFloat() to lon.toFloat())
                     }
                 }
             }.shuffled(placementRandom)
             for (c in grid) {
-                if (chosen.size >= MinHeartsForLetters) break
+                if (chosen.size >= TargetHearts) break
+                if (!heartFullyOnVisibleDome(c)) continue
                 if (chosen.any { distance(c, it) < 0.05f }) continue
                 if (chosen.all { distance(c, it) >= MinCenterDistanceRelaxedDeg }) chosen.add(c)
             }
         }
 
-        return chosen
+        val rest = chosen.drop(1).shuffled(placementRandom)
+        return listOf(chosen.first()) + rest
     }
 
     private val heartEdges: List<Pair<Int, Int>> = List(18) { i -> i to ((i + 1) % 18) }
