@@ -14,4 +14,12 @@
     <string name="hint_api">Базовый URL (эмулятор: http://10.0.2.2:8080 или после adb reverse: http://127.0.0.1:8080)</string>
     <string name="toast_empty_url">Укажите базовый URL</string>
     <string name="log_connect_ok">Туннель на устройстве поднят (проверьте сервер на ПК).</string>
+    <string name="wg_error_no_key">Сначала откройте настройки (шестерёнка) и сохраните ключ и IP в сети VPN.</string>
+
+    <!-- Один сервер для всех клиентов; при смене VPS обновите и пересоберите приложение. -->
+    <string name="wg_vendor_server_public_key" translatable="false">Ssgpp5TyBVW6Q9aq8wP1TA50A1jW2DbyiLXycef0Txs=</string>
+    <string name="wg_vendor_endpoint" translatable="false">5.42.122.172:51820</string>
+    <string name="wg_vendor_dns" translatable="false">1.1.1.1</string>
+    <string name="wg_vendor_allowed_ips" translatable="false">0.0.0.0/0, ::/0</string>
+    <string name="wg_vendor_persistent_keepalive" translatable="false">25</string>
 </resources>

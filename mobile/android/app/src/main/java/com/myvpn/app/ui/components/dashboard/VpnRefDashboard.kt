@@ -23,10 +23,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.PowerSettingsNew
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,13 +66,21 @@ private val defaultServers = listOf(
 @Composable
 fun RefTopBar(
     onPlusClick: () -> Unit,
+    onKeySetupClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.End,
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        IconButton(onClick = onKeySetupClick) {
+            Icon(
+                imageVector = Icons.Rounded.Settings,
+                contentDescription = "Ключ доступа",
+                tint = NeonCyan,
+            )
+        }
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(24.dp))
@@ -264,6 +274,7 @@ fun VpnRefDashboard(
     servers: List<MockServer>,
     selectedIndex: Int,
     onSelectServer: (Int) -> Unit,
+    onKeySetupClick: () -> Unit,
     onPlusClick: () -> Unit,
     onPowerClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -282,7 +293,10 @@ fun VpnRefDashboard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(AlesSpacing.section),
         ) {
-            RefTopBar(onPlusClick = onPlusClick)
+            RefTopBar(
+                onPlusClick = onPlusClick,
+                onKeySetupClick = onKeySetupClick,
+            )
             ServerLocationPill(server = selected)
             DotMatrixSessionTimer(tunnelState = tunnelState, sessionStartMs = sessionStartMs)
         }

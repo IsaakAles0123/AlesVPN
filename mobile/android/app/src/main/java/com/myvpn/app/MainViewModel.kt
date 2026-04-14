@@ -9,6 +9,17 @@ import com.wireguard.android.backend.Tunnel
 
 class MainViewModel : ViewModel() {
 
+    var showWgKeySetup by mutableStateOf(false)
+        private set
+
+    fun openWgKeySetup() {
+        showWgKeySetup = true
+    }
+
+    fun closeWgKeySetup() {
+        showWgKeySetup = false
+    }
+
     var tunnelState by mutableStateOf(Tunnel.State.DOWN)
         private set
 

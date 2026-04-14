@@ -27,6 +27,7 @@ fun HomeScreen(
     viewModel: MainViewModel,
     onConnectClick: () -> Unit,
     onStopClick: () -> Unit,
+    onOpenKeySetup: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val ctx = LocalContext.current
@@ -47,6 +48,7 @@ fun HomeScreen(
                 servers = servers,
                 selectedIndex = selectedServerIndex,
                 onSelectServer = { selectedServerIndex = it },
+                onKeySetupClick = onOpenKeySetup,
                 onPlusClick = {
                     Toast.makeText(ctx, "Get Plus", Toast.LENGTH_SHORT).show()
                 },

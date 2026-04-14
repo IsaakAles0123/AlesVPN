@@ -15,6 +15,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import com.myvpn.app.data.VpnSettingsRepository
 import com.myvpn.app.tunnel.AlesWgTunnel
 import com.myvpn.app.ui.AlesVpnApp
 import com.myvpn.app.ui.theme.AlesVPNTheme
@@ -22,6 +23,7 @@ import com.wireguard.android.backend.BackendException
 import com.wireguard.android.backend.GoBackend
 import com.wireguard.android.backend.Tunnel
 import com.wireguard.config.Config
+import java.io.ByteArrayInputStream
 import java.util.concurrent.Executors
 
 class MainActivity : ComponentActivity() {
@@ -33,6 +35,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private val viewModel: MainViewModel by viewModels()
+
+    private val wgSettingsRepository by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        VpnSettingsRepository(applicationContext)
+    }
 
     private val wgTunnel: Tunnel by lazy(LazyThreadSafetyMode.NONE) {
         AlesWgTunnel(TUNNEL_NAME) { state ->
@@ -81,6 +87,7 @@ class MainActivity : ComponentActivity() {
             AlesVPNTheme {
                 AlesVpnApp(
                     viewModel = viewModel,
+                    wgSettingsRepository = wgSettingsRepository,
                     onConnectClick = {
                         if (Build.VERSION.SDK_INT >= 33 &&
                             ContextCompat.checkSelfPermission(
@@ -124,10 +131,20 @@ class MainActivity : ComponentActivity() {
     private fun connectWireGuard() {
         wgExecutor.execute {
             val result = runCatching {
-                assets.open(ASSET_WG_CONFIG).use { stream ->
-                    val cfg = Config.parse(stream)
-                    goBackend.setState(wgTunnel, Tunnel.State.UP, cfg)
+                val text = wgSettingsRepository.resolveConfigString(resources)
+                if (text == null) {
+                    runOnUiThread {
+                        val msg = getString(R.string.wg_error_no_key)
+                        appendLog(msg)
+                        Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
+                        viewModel.updateTunnelStateUi(Tunnel.State.DOWN)
+                    }
+                    return@execute
                 }
+                val cfg = ByteArrayInputStream(text.toByteArray(Charsets.UTF_8)).use { stream ->
+                    Config.parse(stream)
+                }
+                goBackend.setState(wgTunnel, Tunnel.State.UP, cfg)
             }
             runOnUiThread {
                 result.fold(
@@ -157,6 +174,5 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         private const val TUNNEL_NAME = "aleswg"
-        private const val ASSET_WG_CONFIG = "wg_sample.conf"
     }
 }
