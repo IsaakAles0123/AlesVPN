@@ -6,18 +6,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.wireguard.android.backend.Tunnel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class MainViewModel : ViewModel() {
 
-    var showWgKeySetup by mutableStateOf(false)
-        private set
+    private val _showWgKeySetup = MutableStateFlow(false)
+    val showWgKeySetup: StateFlow<Boolean> = _showWgKeySetup.asStateFlow()
 
     fun openWgKeySetup() {
-        showWgKeySetup = true
+        _showWgKeySetup.value = true
     }
 
     fun closeWgKeySetup() {
-        showWgKeySetup = false
+        _showWgKeySetup.value = false
     }
 
     var tunnelState by mutableStateOf(Tunnel.State.DOWN)

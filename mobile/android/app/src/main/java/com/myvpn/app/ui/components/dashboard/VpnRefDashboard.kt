@@ -289,7 +289,8 @@ fun VpnRefDashboard(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .padding(horizontal = AlesSpacing.screenHorizontal),
+                .padding(horizontal = AlesSpacing.screenHorizontal)
+                .zIndex(2f),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(AlesSpacing.section),
         ) {

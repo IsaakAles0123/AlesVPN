@@ -1,6 +1,8 @@
 package com.myvpn.app.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myvpn.app.MainViewModel
 import com.myvpn.app.data.VpnSettingsRepository
 import com.myvpn.app.ui.screens.HomeScreen
@@ -13,7 +15,8 @@ fun AlesVpnApp(
     onConnectClick: () -> Unit,
     onStopClick: () -> Unit,
 ) {
-    if (viewModel.showWgKeySetup) {
+    val showWgKeySetup by viewModel.showWgKeySetup.collectAsStateWithLifecycle()
+    if (showWgKeySetup) {
         WgKeySetupScreen(
             repository = wgSettingsRepository,
             onBack = { viewModel.closeWgKeySetup() },
