@@ -1,0 +1,3 @@
+Дата первого подключения (факт);Клиент / устройство;Контакт;IP в VPN;Приватный ключ клиента;Публичный ключ клиента;Peer на сервере;Заметки
+2026-04-15;iPhone / myphone-16proMax (client-01, 10.8.0.2);;10.8.0.2/32;SKmPOivri8giflnX1vWp27ds+9+56xI5Dh5pJU1k12E=;nZs3C99LKqlg6dA3tNdn3eUXgG0EnTmNjeDU+T+CZSI=;да;авторизован, handshake с сервера
+2026-04-15;client-02;;10.8.0.3/32;ICg2HQCFmnF8vBvyNuq+W3NUK7G33ri4h4nVNePMQkM=;HQYY5ZltkqTXjBo3eUC/NFFdARB+7xM/hzrrhUbID00=;да;авторизован, handshake с сервера
