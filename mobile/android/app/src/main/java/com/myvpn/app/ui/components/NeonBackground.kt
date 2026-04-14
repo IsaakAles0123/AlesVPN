@@ -33,11 +33,12 @@ fun NeonBackground(content: @Composable BoxScope.() -> Unit) {
                 ),
             ),
     ) {
+        AmbientStarFieldBackdrop(modifier = Modifier.fillMaxSize())
         WireframeGlobeBackdrop(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(640.dp)
+                .height(GlobeBackdropHeight)
                 .offset(y = 0.dp),
         )
         Box(

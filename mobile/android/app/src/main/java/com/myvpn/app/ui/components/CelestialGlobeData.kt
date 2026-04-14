@@ -46,17 +46,19 @@ internal object CelestialGlobeData {
         }
     }
 
-    private const val MinCenterDistanceDeg = 14f
-    private const val MinCenterDistanceRelaxedDeg = 9f
+    private const val MinCenterDistanceDeg = 13f
+    private const val MinCenterDistanceRelaxedDeg = 8.5f
     private const val MinHeartsForLetters = 3
-    private const val MaxHearts = 6
+    private const val MaxHearts = 12
 
     private fun distance(a: Pair<Float, Float>, b: Pair<Float, Float>): Float =
         hypot((a.first - b.first).toDouble(), (a.second - b.second).toDouble()).toFloat()
 
+    private fun isDuplicate(c: Pair<Float, Float>, chosen: List<Pair<Float, Float>>): Boolean =
+        chosen.any { distance(it, c) < 0.08f }
+
     /**
-     * Кандидаты центров по куполу; жадно выбираем непересекающиеся (по градусам).
-     * Первым всегда идёт «родное» положение Samira.
+     * Кандидаты по куполу; сначала заполняем около якоря, затем — восточнее (правый видимый край глобуса).
      */
     private fun heartCenters(): List<Pair<Float, Float>> {
         val anchor = refLat to refLon
@@ -66,30 +68,57 @@ internal object CelestialGlobeData {
                     add(lat.toFloat() to lon.toFloat())
                 }
             }
+            for (lat in -14..54 step 9) {
+                for (lon in 5..82 step 9) {
+                    add(lat.toFloat() to lon.toFloat())
+                }
+            }
             add(-8f to -62f)
             add(44f to 48f)
             add(52f to -58f)
-        }
+            add(38f to 62f)
+            add(22f to 70f)
+            add(48f to 58f)
+            add(12f to 45f)
+        }.distinctBy { "${it.first},${it.second}" }
+
         val chosen = mutableListOf(anchor)
-        val rest = candidates
+
+        fun addGreedy(order: List<Pair<Float, Float>>, minD: Float) {
+            for (c in order) {
+                if (chosen.size >= MaxHearts) return
+                if (isDuplicate(c, chosen)) continue
+                if (chosen.all { distance(c, it) >= minD }) chosen.add(c)
+            }
+        }
+
+        val restNear = candidates
             .filter { distance(it, anchor) >= 0.01f }
             .sortedBy { distance(it, anchor) }
-        for (c in rest) {
-            if (chosen.size >= MaxHearts) break
-            if (chosen.all { distance(c, it) >= MinCenterDistanceDeg }) {
-                chosen.add(c)
-            }
-        }
+        addGreedy(restNear, MinCenterDistanceDeg)
+
+        val eastFirst = candidates
+            .filter { !isDuplicate(it, chosen) && it.second > 5f }
+            .sortedByDescending { it.second }
+        addGreedy(eastFirst, MinCenterDistanceDeg)
+
+        val restAny = candidates
+            .filter { !isDuplicate(it, chosen) }
+            .sortedBy { distance(it, anchor) }
+        addGreedy(restAny, MinCenterDistanceDeg)
+
         if (chosen.size < MinHeartsForLetters) {
-            val rest2 = candidates.filter { it !in chosen }.sortedBy { distance(it, anchor) }
-            for (c in rest2) {
-                if (chosen.size >= MaxHearts) break
-                if (chosen.size >= MinHeartsForLetters) break
-                if (chosen.all { distance(c, it) >= MinCenterDistanceRelaxedDeg }) {
-                    chosen.add(c)
-                }
-            }
+            addGreedy(
+                candidates.filter { !isDuplicate(it, chosen) }.sortedBy { distance(it, anchor) },
+                MinCenterDistanceRelaxedDeg,
+            )
         }
+
+        val eastFill = candidates
+            .filter { !isDuplicate(it, chosen) && it.second >= 12f }
+            .sortedByDescending { it.second }
+        addGreedy(eastFill, MinCenterDistanceRelaxedDeg)
+
         return chosen
     }
 
