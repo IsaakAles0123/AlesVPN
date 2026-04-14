@@ -38,3 +38,7 @@ Thumbs.db
 /remote.txt
 /ls-remote.txt
 wireguard/phone.conf
+
+# Сгенерированные ключи (не коммитить)
+/keys/
+keys/
