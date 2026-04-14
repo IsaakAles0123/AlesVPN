@@ -1,8 +1,10 @@
 package com.myvpn.app.ui.components
 
+import kotlin.math.hypot
+
 /**
- * Созвездия на сфере: [starsLatLon] в градусах (широта, долгота), [edges] — индексы звёзд.
- * Пустое [name] — без подписи (чтобы не перегружать экран).
+ * Только сердца в форме Samira; буква «S» рисуется на первом (якорном) сердце в [WireframeGlobeBackdrop].
+ * Центры подобраны с минимальным расстоянием в (lat, lon), чтобы фигуры не слипались.
  */
 internal object CelestialGlobeData {
 
@@ -14,139 +16,81 @@ internal object CelestialGlobeData {
         val edges: List<Pair<Int, Int>>,
     )
 
-    /** Только классические созвездия — линии и подписи (без сетки мини-астеризмов, они налезали друг на друга). */
-    val namedConstellations: List<Constellation> = listOf(
-        Constellation(
-            "Aquila",
-            listOf(18f to -8f, 22f to -5f, 26f to -3f, 24f to 2f, 20f to 0f),
-            listOf(0 to 1, 1 to 2, 2 to 3, 3 to 4, 4 to 1),
-        ),
-        Constellation(
-            "Lyra",
-            listOf(32f to 12f, 34f to 15f, 36f to 13f, 35f to 10f),
-            listOf(0 to 1, 1 to 2, 2 to 3, 3 to 0),
-        ),
-        Constellation(
-            "Cygnus",
-            listOf(42f to -18f, 46f to -15f, 50f to -12f, 48f to -20f, 44f to -22f),
-            listOf(0 to 1, 1 to 2, 2 to 3, 3 to 4, 4 to 1),
-        ),
-        Constellation(
-            "Hercules",
-            listOf(12f to 25f, 16f to 28f, 20f to 30f, 18f to 34f, 14f to 32f, 10f to 28f),
-            listOf(0 to 1, 1 to 2, 2 to 3, 3 to 4, 4 to 5, 5 to 0),
-        ),
-        Constellation(
-            "Orion",
-            listOf(-8f to 15f, -4f to 18f, 0f to 20f, -2f to 24f, -10f to 22f, -6f to 12f),
-            listOf(0 to 1, 1 to 2, 2 to 3, 3 to 4, 4 to 5, 5 to 1),
-        ),
-        Constellation(
-            "Gemini",
-            listOf(22f to 35f, 24f to 38f, 20f to 40f, 18f to 36f),
-            listOf(0 to 1, 2 to 3, 0 to 2),
-        ),
-        Constellation(
-            "Leo",
-            listOf(8f to -48f, 12f to -44f, 10f to -40f, 6f to -42f, 4f to -46f),
-            listOf(0 to 1, 1 to 2, 2 to 3, 3 to 4, 4 to 0),
-        ),
-        Constellation(
-            "Ursa Min",
-            listOf(68f to -40f, 70f to -38f, 72f to -42f, 69f to -45f),
-            listOf(0 to 1, 1 to 2, 2 to 3, 3 to 0),
-        ),
-        Constellation(
-            "Cassiopeia",
-            listOf(58f to 20f, 60f to 24f, 56f to 26f, 54f to 22f, 55f to 18f),
-            listOf(0 to 1, 1 to 2, 2 to 3, 3 to 4),
-        ),
-        Constellation(
-            "Perseus",
-            listOf(48f to 8f, 46f to 12f, 44f to 10f, 45f to 5f, 47f to 4f),
-            listOf(0 to 1, 1 to 2, 2 to 3, 3 to 4),
-        ),
-        Constellation(
-            "Pegasus",
-            listOf(22f to -48f, 18f to -45f, 20f to -40f, 24f to -42f),
-            listOf(0 to 1, 1 to 2, 2 to 3, 3 to 0),
-        ),
-        Constellation(
-            "Andromeda",
-            listOf(38f to 6f, 40f to 10f, 36f to 12f, 34f to 8f),
-            listOf(0 to 1, 1 to 2, 2 to 3),
-        ),
-        Constellation(
-            "Scorpius",
-            listOf(-12f to -32f, -16f to -30f, -20f to -28f, -24f to -26f, -28f to -24f),
-            listOf(0 to 1, 1 to 2, 2 to 3, 3 to 4),
-        ),
-        Constellation(
-            "Sagitta",
-            listOf(16f to -8f, 18f to -5f, 20f to -6f),
-            listOf(0 to 1, 1 to 2),
-        ),
-        Constellation(
-            "Libra",
-            listOf(-18f to 28f, -14f to 30f, -16f to 34f, -20f to 32f),
-            listOf(0 to 1, 1 to 2, 2 to 3, 3 to 0),
-        ),
-        Constellation(
-            "Capricorn",
-            listOf(-28f to -18f, -30f to -14f, -26f to -12f, -24f to -16f),
-            listOf(0 to 1, 1 to 2, 2 to 3, 3 to 0),
-        ),
-        Constellation(
-            "Pisces",
-            listOf(8f to 58f, 6f to 62f, 4f to 58f, 6f to 54f),
-            listOf(0 to 1, 1 to 2, 2 to 3, 3 to 0),
-        ),
-        Constellation(
-            "Virgo",
-            listOf(-4f to -8f, 0f to -6f, -2f to -2f, -6f to -4f, -8f to -10f),
-            listOf(0 to 1, 1 to 2, 2 to 3, 3 to 4),
-        ),
-        Constellation(
-            "Bootes",
-            listOf(32f to -32f, 30f to -28f, 28f to -30f, 34f to -34f, 36f to -30f),
-            listOf(0 to 1, 1 to 2, 2 to 3, 3 to 4, 4 to 1),
-        ),
-        Constellation(
-            "Draco",
-            listOf(62f to -10f, 64f to -6f, 66f to -8f, 64f to -12f, 60f to -14f, 58f to -10f),
-            listOf(0 to 1, 1 to 2, 2 to 3, 3 to 4, 4 to 5),
-        ),
-        Constellation(
-            "Centaurus",
-            listOf(-48f to 12f, -44f to 14f, -46f to 18f, -50f to 16f),
-            listOf(0 to 1, 1 to 2, 2 to 3, 3 to 0),
-        ),
-        /**
-         * Сердце: параметрическая кривая; долгота смещена ещё левее (~1–1.5 см на экране).
-         */
-        Constellation(
-            "",
-            listOf(
-                33.2f to -46.0f,
-                34.2f to -45.7f,
-                36.0f to -44.1f,
-                36.2f to -41.3f,
-                34.2f to -39.1f,
-                31.3f to -39.1f,
-                28.5f to -41.3f,
-                26.1f to -44.1f,
-                24.2f to -45.7f,
-                23.4f to -46.0f,
-                24.2f to -46.3f,
-                26.1f to -47.9f,
-                28.5f to -50.7f,
-                31.3f to -52.9f,
-                34.2f to -52.9f,
-                36.2f to -50.7f,
-                36.0f to -47.9f,
-                34.2f to -46.3f,
-            ),
-            List(18) { i -> i to ((i + 1) % 18) },
-        ),
+    /** Эталонные точки сердца (как у прежней Samira), центр ~(31°, -46°). */
+    private val heartBaseLat: FloatArray = floatArrayOf(
+        33.2f, 34.2f, 36f, 36.2f, 34.2f, 31.3f, 28.5f, 26.1f, 24.2f, 23.4f,
+        24.2f, 26.1f, 28.5f, 31.3f, 34.2f, 36.2f, 36f, 34.2f,
     )
+    private val heartBaseLon: FloatArray = floatArrayOf(
+        -46f, -45.7f, -44.1f, -41.3f, -39.1f, -39.1f, -41.3f, -44.1f, -45.7f, -46f,
+        -46.3f, -47.9f, -50.7f, -52.9f, -52.9f, -50.7f, -47.9f, -46.3f,
+    )
+
+    private val refLat: Float = heartBaseLat.sum() / heartBaseLat.size
+    private val refLon: Float = heartBaseLon.sum() / heartBaseLon.size
+
+    private val dLat: FloatArray = FloatArray(heartBaseLat.size) { i -> heartBaseLat[i] - refLat }
+    private val dLon: FloatArray = FloatArray(heartBaseLon.size) { i -> heartBaseLon[i] - refLon }
+
+    private fun normalizeLon(deg: Float): Float {
+        var d = deg % 360f
+        if (d > 180f) d -= 360f
+        if (d < -180f) d += 360f
+        return d.coerceIn(-88f, 88f)
+    }
+
+    /** Точки сердца с центром (centerLat, centerLon). */
+    fun heartAt(centerLat: Float, centerLon: Float): List<Pair<Float, Float>> {
+        return List(dLat.size) { i ->
+            (centerLat + dLat[i]).coerceIn(-86f, 86f) to normalizeLon(centerLon + dLon[i])
+        }
+    }
+
+    private const val MinCenterDistanceDeg = 14f
+    private const val MaxHearts = 6
+
+    private fun distance(a: Pair<Float, Float>, b: Pair<Float, Float>): Float =
+        hypot((a.first - b.first).toDouble(), (a.second - b.second).toDouble()).toFloat()
+
+    /**
+     * Кандидаты центров по куполу; жадно выбираем непересекающиеся (по градусам).
+     * Первым всегда идёт «родное» положение Samira.
+     */
+    private fun heartCenters(): List<Pair<Float, Float>> {
+        val anchor = refLat to refLon
+        val candidates = buildList {
+            for (lat in -18..58 step 11) {
+                for (lon in -78..78 step 13) {
+                    add(lat.toFloat() to lon.toFloat())
+                }
+            }
+            add(-8f to -62f)
+            add(44f to 48f)
+            add(52f to -58f)
+        }
+        val chosen = mutableListOf(anchor)
+        val rest = candidates
+            .filter { distance(it, anchor) >= 0.01f }
+            .sortedBy { distance(it, anchor) }
+        for (c in rest) {
+            if (chosen.size >= MaxHearts) break
+            if (chosen.all { distance(c, it) >= MinCenterDistanceDeg }) {
+                chosen.add(c)
+            }
+        }
+        return chosen
+    }
+
+    private val heartEdges: List<Pair<Int, Int>> = List(18) { i -> i to ((i + 1) % 18) }
+
+    val namedConstellations: List<Constellation> = run {
+        val centers = heartCenters()
+        centers.mapIndexed { _, (clat, clon) ->
+            Constellation(
+                name = "",
+                starsLatLon = heartAt(clat, clon),
+                edges = heartEdges,
+            )
+        }
+    }
 }

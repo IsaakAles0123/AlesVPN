@@ -228,7 +228,8 @@ fun WireframeGlobeBackdrop(
         )
         val placed = mutableListOf<LabelBounds>()
 
-        CelestialGlobeData.namedConstellations.find { it.starsLatLon.size == 18 }?.let { samira ->
+        // Буква «S» — только на первом (якорном) сердце Samira
+        CelestialGlobeData.namedConstellations.firstOrNull()?.let { samira ->
             var sx = 0f
             var sy = 0f
             var cnt = 0
