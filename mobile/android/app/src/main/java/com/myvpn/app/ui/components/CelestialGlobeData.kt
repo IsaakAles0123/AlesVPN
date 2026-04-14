@@ -77,21 +77,22 @@ internal object CelestialGlobeData {
     }
 
     /**
-     * Все вершины сердца должны быть севернее «резака» экрана (sin(lat)>0) и с запасом,
-     * иначе часть контура пропадает в clipRect.
+     * Все вершины на видимой стороне купола; верх сердца не у самого обода диска ([maxLat] ниже —
+     * иначе фигуры у верхнего края глобуса сплющиваются).
      */
     private fun heartFullyOnVisibleDome(center: Pair<Float, Float>): Boolean {
         val pts = heartAt(center.first, center.second)
         val minLat = pts.minOf { it.first }
         val maxLat = pts.maxOf { it.first }
-        if (minLat < 14f || maxLat > 82f) return false
+        if (minLat < 16f || maxLat > 58f) return false
         return pts.all { (la, lo) -> isFacingViewer(la, lo) }
     }
 
     private fun distance(a: Pair<Float, Float>, b: Pair<Float, Float>): Float =
         hypot((a.first - b.first).toDouble(), (a.second - b.second).toDouble()).toFloat()
 
-    private fun randomLat(): Float = 14f + placementRandom.nextFloat() * 64f
+    /** Центры ниже по куполу (не у верхнего обода), диапазон согласован с [heartFullyOnVisibleDome]. */
+    private fun randomLat(): Float = 20f + placementRandom.nextFloat() * 26f
     private fun randomLon(): Float = placementRandom.nextFloat() * 172f - 86f
 
     /**
@@ -123,7 +124,7 @@ internal object CelestialGlobeData {
 
         if (chosen.size < TargetHearts) {
             val grid = buildList {
-                for (lat in 16..72 step 10) {
+                for (lat in 18..50 step 8) {
                     for (lon in -78..78 step 11) {
                         add(lat.toFloat() to lon.toFloat())
                     }

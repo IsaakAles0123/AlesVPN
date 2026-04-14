@@ -21,14 +21,11 @@ private const val AmbientConstellationGroups = 20
 private const val MinConstellationAnchorSpacingPx = 128f
 
 /**
- * Звёзды и мини-созвездия по экрану, кроме глобуса и верхней/нижней полос UI.
- * Зона кнопки питания не вырезается — линии могут проходить под ней как фон.
+ * Звёзды и мини-созвездия по всему экрану как фон; вырезается только диск глобуса (контент UI рисуется поверх).
  */
 @Composable
 fun AmbientStarFieldBackdrop(modifier: Modifier = Modifier) {
     val density = LocalDensity.current
-    val topPad = with(density) { 200.dp.toPx() }
-    val bottomPad = with(density) { 168.dp.toPx() }
     val globeMargin = with(density) { 14.dp.toPx() }
 
     BoxWithConstraints(modifier.fillMaxSize()) {
@@ -45,8 +42,6 @@ fun AmbientStarFieldBackdrop(modifier: Modifier = Modifier) {
             fun allowedStar(p: Offset): Boolean {
                 val x = p.x
                 val y = p.y
-                if (y < min(topPad, h * 0.24f)) return false
-                if (y > h - bottomPad) return false
                 if (hypot((x - globeCx).toDouble(), (y - globeCy).toDouble()) < globeR) return false
                 return true
             }
