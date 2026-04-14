@@ -60,11 +60,24 @@ internal object CelestialGlobeData {
     /** Минимум расстояния центров в нормированных координатах проекции (как [WireframeGlobeBackdrop.project]). */
     private const val MinCenterSepDisc = 0.34f
     private const val MinCenterSepDiscRelaxed = 0.30f
+    private const val MinCenterSepDiscLastResort = 0.24f
     private const val MinHeartsForLetters = 3
     private const val TargetHearts = 6
     private const val RandomPlacementAttempts = 900
 
     private val placementRandom = Random(90210)
+
+    /** Кандидаты «левый нижний» квадрант диска (отриц. lon, умеренная lat) — если не хватает 6-го сердца. */
+    private val lowerLeftHeartCandidates: List<Pair<Float, Float>> = listOf(
+        24f to -40f,
+        26f to -44f,
+        22f to -34f,
+        28f to -46f,
+        23f to -38f,
+        25f to -48f,
+        21f to -36f,
+        27f to -42f,
+    )
 
     private fun normalizeLonDeg(deg: Float): Float {
         var d = deg % 360f
@@ -132,6 +145,33 @@ internal object CelestialGlobeData {
             }
         }
 
+        /** Добавить недостающее сердце в левом нижнем секторе глобуса. */
+        fun tryFillLowerLeft() {
+            if (chosen.size >= TargetHearts) return
+            val tiers = listOf(
+                MinCenterDistanceRelaxedDeg to MinCenterSepDiscRelaxed,
+                18f to MinCenterSepDiscLastResort,
+                17f to MinCenterSepDiscLastResort,
+            )
+            for ((minDeg, minDisc) in tiers) {
+                for (c in lowerLeftHeartCandidates) {
+                    if (chosen.size >= TargetHearts) return
+                    if (canAdd(c, minDeg, minDisc)) {
+                        chosen.add(c)
+                        return
+                    }
+                }
+            }
+            repeat(120) {
+                if (chosen.size >= TargetHearts) return
+                val c = (21f + placementRandom.nextFloat() * 8f) to (-50f + placementRandom.nextFloat() * 14f)
+                if (canAdd(c, 16f, 0.22f)) {
+                    chosen.add(c)
+                    return
+                }
+            }
+        }
+
         fun tryPlace(minDeg: Float, minDisc: Float): Boolean {
             repeat(RandomPlacementAttempts) {
                 val c = randomLat() to randomLon()
@@ -162,6 +202,8 @@ internal object CelestialGlobeData {
                 if (canAdd(c, MinCenterDistanceRelaxedDeg, MinCenterSepDiscRelaxed)) chosen.add(c)
             }
         }
+
+        tryFillLowerLeft()
 
         val rest = chosen.drop(1).shuffled(placementRandom)
         return listOf(chosen.first()) + rest
