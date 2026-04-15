@@ -1,0 +1,1 @@
+"""Telegram-бот оплаты AlesVPN."""
