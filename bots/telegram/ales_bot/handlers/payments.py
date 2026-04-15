@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import logging
+import uuid
 
 from aiogram import Bot, F, Router
 from aiogram.filters import Command
@@ -13,6 +14,7 @@ from aiogram.types import (
     LabeledPrice,
     Message,
     PreCheckoutQuery,
+    User,
 )
 
 from ales_bot.config import Settings, is_admin
@@ -28,6 +30,8 @@ from ales_bot.wg_provision import provision_after_payment
 logger = logging.getLogger(__name__)
 
 router = Router(name="payments")
+
+_ADMIN_FREE_PAYLOAD = "admin_free_v1"
 
 
 def _stars_prices(settings: Settings) -> list[LabeledPrice]:
@@ -54,8 +58,170 @@ async def _send_invoice(
     )
 
 
+async def _deliver_purchase(
+    message: Message,
+    bot: Bot,
+    settings: Settings,
+    *,
+    uid: int,
+    uname: str | None,
+    telegram_charge_id: str,
+    amount: int,
+    currency: str,
+    invoice_payload: str,
+    free_admin: bool,
+) -> None:
+    uid_line = f"\n\nВаш ID: <code>{uid}</code> — сохраните, если поддержка попросит."
+    wg_admin_extra = ""
+
+    paid_title = (
+        "Выдача для <b>администратора</b> (без списания Stars)."
+        if free_admin
+        else "Оплата принята. Данные для приложения <b>AlesVPN</b>:"
+    )
+
+    if settings.wg_auto_provision:
+        try:
+            octet = await allocate_next_octet_async(
+                settings.db_path,
+                settings.wg_octet_min,
+                settings.wg_octet_max,
+            )
+            res = await provision_after_payment(settings, octet)
+            await update_payment_wg_async(
+                settings.db_path,
+                telegram_charge_id,
+                wg_public_key=res.public_key,
+                wg_address=res.address_cidr,
+                wg_provision_error=None,
+            )
+            paste_esc = html.escape(res.paste_two_lines)
+            await message.answer(
+                f"{paid_title}\n\n"
+                f"<pre>{paste_esc}</pre>\n\n"
+                "В приложении откройте настройку ключа и вставьте <b>две строки</b> "
+                "(приватный ключ и адрес). Ниже — полный файл для импорта в WireGuard."
+                + uid_line,
+            )
+            await message.answer_document(
+                BufferedInputFile(
+                    res.conf_text.encode("utf-8"),
+                    filename="alesvpn.conf",
+                ),
+                caption="Импорт в WireGuard или сохраните как текст конфигурации.",
+            )
+            wg_admin_extra = (
+                f"\nWG: <code>{html.escape(res.address_cidr)}</code> "
+                f"pub <code>{html.escape(res.public_key)}</code>"
+            )
+        except Exception as e:
+            logger.exception("Автовыдача WireGuard не удалась")
+            err_t = str(e)[:800]
+            await update_payment_wg_async(
+                settings.db_path,
+                telegram_charge_id,
+                wg_public_key=None,
+                wg_address=None,
+                wg_provision_error=err_t,
+            )
+            await message.answer(
+                (
+                    "Автовыдача ключа сейчас недоступна — проверьте логи и wg на сервере."
+                    if free_admin
+                    else "Оплата прошла успешно. Автовыдача ключа сейчас недоступна — "
+                    "администратор отправит доступ вручную."
+                )
+                + uid_line,
+            )
+            wg_admin_extra = f"\n<b>Ошибка WG</b>: {html.escape(err_t)}"
+    else:
+        await message.answer(
+            (
+                "Для администратора счёт не требуется. Ключ выдаётся вручную."
+                if free_admin
+                else "Оплата прошла успешно. Администратор скоро отправит данные для входа в VPN."
+            )
+            + uid_line,
+        )
+
+    user_link = f'<a href="tg://user?id={uid}">профиль</a>' if uid else "—"
+    header = (
+        "Бесплатная выдача (админ)"
+        if free_admin
+        else "Новая оплата (Stars)"
+    )
+    lines = [
+        header,
+        f"user_id: <code>{uid}</code> ({user_link})",
+    ]
+    if uname:
+        lines.append(f"username: @{html.escape(uname)}")
+    lines.extend(
+        [
+            f"total: {amount} {currency}",
+            f"payload: <code>{html.escape(invoice_payload)}</code>",
+            f"telegram_charge_id: <code>{html.escape(telegram_charge_id)}</code>",
+        ]
+    )
+    if wg_admin_extra:
+        lines.append(wg_admin_extra)
+    admin_text = "\n".join(lines)
+
+    for admin_id in settings.admin_ids:
+        try:
+            await bot.send_message(admin_id, admin_text)
+        except Exception as e:
+            logger.warning("Не удалось уведомить админа %s: %s", admin_id, e)
+
+
+async def _try_admin_free_buy(
+    message: Message,
+    bot: Bot,
+    settings: Settings,
+    *,
+    actor: User | None = None,
+) -> bool:
+    """Если пользователь — админ, выдаём доступ за 0 Stars. Возвращает True, если обработано."""
+    user = actor or message.from_user
+    uid = user.id if user else 0
+    if not uid or not is_admin(uid, settings):
+        return False
+
+    uname = user.username if user else None
+    charge_id = f"admin_free_{uid}_{uuid.uuid4().hex[:16]}"
+
+    inserted = await insert_payment_async(
+        settings.db_path,
+        telegram_charge_id=charge_id,
+        user_id=uid,
+        username=uname,
+        amount=0,
+        currency="XTR",
+        invoice_payload=_ADMIN_FREE_PAYLOAD,
+    )
+    if not inserted:
+        await message.answer("Не удалось записать выдачу. Попробуйте /buy ещё раз.")
+        return True
+
+    await _deliver_purchase(
+        message,
+        bot,
+        settings,
+        uid=uid,
+        uname=uname,
+        telegram_charge_id=charge_id,
+        amount=0,
+        currency="XTR",
+        invoice_payload=_ADMIN_FREE_PAYLOAD,
+        free_admin=True,
+    )
+    return True
+
+
 @router.message(Command("buy"))
 async def cmd_buy(message: Message, bot: Bot, settings: Settings) -> None:
+    if await _try_admin_free_buy(message, bot, settings):
+        return
     await _send_invoice(message.chat.id, bot, settings)
 
 
@@ -64,6 +230,14 @@ async def callback_buy(query: CallbackQuery, bot: Bot, settings: Settings) -> No
     await query.answer()
     if query.message is None:
         return
+    if query.from_user and is_admin(query.from_user.id, settings):
+        if await _try_admin_free_buy(
+            query.message,
+            bot,
+            settings,
+            actor=query.from_user,
+        ):
+            return
     await _send_invoice(query.message.chat.id, bot, settings)
 
 
@@ -107,88 +281,18 @@ async def successful_payment(message: Message, settings: Settings, bot: Bot) -> 
         )
         return
 
-    uid_line = f"\n\nВаш ID: <code>{uid}</code> — сохраните, если поддержка попросит."
-    wg_admin_extra = ""
-
-    if settings.wg_auto_provision:
-        try:
-            octet = await allocate_next_octet_async(
-                settings.db_path,
-                settings.wg_octet_min,
-                settings.wg_octet_max,
-            )
-            res = await provision_after_payment(settings, octet)
-            await update_payment_wg_async(
-                settings.db_path,
-                sp.telegram_payment_charge_id,
-                wg_public_key=res.public_key,
-                wg_address=res.address_cidr,
-                wg_provision_error=None,
-            )
-            paste_esc = html.escape(res.paste_two_lines)
-            await message.answer(
-                "Оплата принята. Данные для приложения <b>AlesVPN</b>:\n\n"
-                f"<pre>{paste_esc}</pre>\n\n"
-                "В приложении откройте настройку ключа и вставьте <b>две строки</b> "
-                "(приватный ключ и адрес). Ниже — полный файл для импорта в WireGuard."
-                + uid_line,
-            )
-            await message.answer_document(
-                BufferedInputFile(
-                    res.conf_text.encode("utf-8"),
-                    filename="alesvpn.conf",
-                ),
-                caption="Импорт в WireGuard или сохраните как текст конфигурации.",
-            )
-            wg_admin_extra = (
-                f"\nWG: <code>{html.escape(res.address_cidr)}</code> "
-                f"pub <code>{html.escape(res.public_key)}</code>"
-            )
-        except Exception as e:
-            logger.exception("Автовыдача WireGuard не удалась")
-            err_t = str(e)[:800]
-            await update_payment_wg_async(
-                settings.db_path,
-                sp.telegram_payment_charge_id,
-                wg_public_key=None,
-                wg_address=None,
-                wg_provision_error=err_t,
-            )
-            await message.answer(
-                "Оплата прошла успешно. Автовыдача ключа сейчас недоступна — "
-                "администратор отправит доступ вручную."
-                + uid_line,
-            )
-            wg_admin_extra = f"\n<b>Ошибка WG</b>: {html.escape(err_t)}"
-    else:
-        await message.answer(
-            "Оплата прошла успешно. Администратор скоро отправит данные для входа в VPN."
-            + uid_line,
-        )
-
-    user_link = f'<a href="tg://user?id={uid}">профиль</a>' if uid else "—"
-    lines = [
-        "Новая оплата (Stars)",
-        f"user_id: <code>{uid}</code> ({user_link})",
-    ]
-    if uname:
-        lines.append(f"username: @{html.escape(uname)}")
-    lines.extend(
-        [
-            f"total: {sp.total_amount} {sp.currency}",
-            f"payload: <code>{html.escape(sp.invoice_payload)}</code>",
-            f"telegram_charge_id: <code>{html.escape(sp.telegram_payment_charge_id)}</code>",
-        ]
+    await _deliver_purchase(
+        message,
+        bot,
+        settings,
+        uid=uid,
+        uname=uname,
+        telegram_charge_id=sp.telegram_payment_charge_id,
+        amount=sp.total_amount,
+        currency=sp.currency,
+        invoice_payload=sp.invoice_payload,
+        free_admin=False,
     )
-    if wg_admin_extra:
-        lines.append(wg_admin_extra)
-    admin_text = "\n".join(lines)
-
-    for admin_id in settings.admin_ids:
-        try:
-            await bot.send_message(admin_id, admin_text)
-        except Exception as e:
-            logger.warning("Не удалось уведомить админа %s: %s", admin_id, e)
 
 
 @router.message(Command("stats"))

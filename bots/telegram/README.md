@@ -31,7 +31,7 @@ python -m ales_bot
 
 Токен бота: [@BotFather](https://t.me/BotFather) → `/newbot`.
 
-**ADMIN_IDS** — ваш числовой `user id` (например [@userinfobot](https://t.me/userinfobot)). После оплаты бот шлёт уведомление каждому админу.
+**ADMIN_IDS** — ваш числовой `user id` (например [@userinfobot](https://t.me/userinfobot)). После оплаты бот шлёт уведомление каждому админу. Для id из **ADMIN_IDS** команда **`/buy`** и кнопка оплаты **не списывают Stars** — сразу идёт выдача (как после оплаты, `0` в учёте).
 
 ## Переменные `.env`
 
