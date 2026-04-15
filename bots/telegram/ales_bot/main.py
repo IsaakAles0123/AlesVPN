@@ -24,12 +24,24 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def _make_bot_session() -> AiohttpSession | None:
-    """Если с ПК не открывается api.telegram.org (блокировка), задайте TELEGRAM_PROXY в .env."""
-    raw = (os.getenv("TELEGRAM_PROXY") or "").strip()
+def _http_timeout_seconds() -> float:
+    """Таймаут запросов к Telegram API (сек). По умолчанию 120 — реже падает на медленном канале."""
+    raw = (os.getenv("TELEGRAM_HTTP_TIMEOUT") or "").strip()
     if not raw:
-        return None
-    return AiohttpSession(proxy=raw)
+        return 120.0
+    try:
+        return max(30.0, float(raw))
+    except ValueError:
+        return 120.0
+
+
+def _make_bot_session() -> AiohttpSession:
+    """TELEGRAM_PROXY — если api.telegram.org недоступен напрямую. TELEGRAM_HTTP_TIMEOUT — таймаут сек."""
+    timeout = _http_timeout_seconds()
+    raw = (os.getenv("TELEGRAM_PROXY") or "").strip()
+    if raw:
+        return AiohttpSession(proxy=raw, timeout=timeout)
+    return AiohttpSession(timeout=timeout)
 
 
 async def main() -> None:
@@ -43,8 +55,11 @@ async def main() -> None:
             settings.wg_add_peer_script,
         )
     session = _make_bot_session()
-    if session is not None:
-        logger.info("Используется прокси для Telegram API (TELEGRAM_PROXY).")
+    logger.info(
+        "HTTP-клиент Telegram: timeout=%ss%s",
+        _http_timeout_seconds(),
+        ", прокси" if (os.getenv("TELEGRAM_PROXY") or "").strip() else "",
+    )
     bot = Bot(
         token=settings.bot_token,
         session=session,

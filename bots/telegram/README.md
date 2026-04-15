@@ -43,6 +43,7 @@ python -m ales_bot
 | `PRODUCT_TITLE` | нет | Заголовок счёта |
 | `PRODUCT_DESCRIPTION` | нет | Описание в счёте |
 | `TELEGRAM_PROXY` | нет | Прокси до `api.telegram.org`, если с сервера/ПК API недоступен |
+| `TELEGRAM_HTTP_TIMEOUT` | нет | Таймаут запросов к API (сек), по умолчанию **120** — снижает случайные `Request timeout` |
 | `DB_PATH` | нет | Путь к SQLite с учётом оплат (по умолчанию `.payments.sqlite` в рабочей папке) |
 | `SUPPORT_USERNAME` | нет | Логин поддержки в Telegram без `@` — показывается в `/help` |
 | `WG_AUTO_PROVISION` | нет | `true` / `1` — после Stars генерировать ключ, вызывать `wg-add-peer.sh`, прислать конфиг пользователю |
