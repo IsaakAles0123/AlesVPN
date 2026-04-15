@@ -50,7 +50,17 @@ python -m ales_bot
 
 ### 1. Скопировать проект на сервер
 
-С **Windows** (PowerShell), из папки репозитория или с указанием пути:
+**Не копируйте папку `.venv`** с ПК на Linux: она огромная, а venv с **Windows на Ubuntu не подходит** — на сервере всегда делайте `python3 -m venv .venv` и `pip install -r requirements.txt` заново.
+
+С **Windows** (PowerShell), только исходники:
+
+```powershell
+scp -r C:\MyVPN\bots\telegram\ales_bot C:\MyVPN\bots\telegram\requirements.txt C:\MyVPN\bots\telegram\README.md C:\MyVPN\bots\telegram\deploy root@ВАШ_IP:/opt/alesvpn-telegram/
+```
+
+Если уже скопировали всё включая `.venv` — на сервере выполните `rm -rf /opt/alesvpn-telegram/.venv` и создайте venv заново (см. ниже).
+
+Старый вариант «всё подряд» (долго и с лишним venv):
 
 ```powershell
 scp -r C:\MyVPN\bots\telegram root@ВАШ_IP:/opt/alesvpn-telegram
