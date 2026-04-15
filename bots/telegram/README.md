@@ -42,6 +42,59 @@ python -m ales_bot
 | `PRICE_STARS` | нет | Цена в Stars (по умолчанию 50) |
 | `PRODUCT_TITLE` | нет | Заголовок счёта |
 | `PRODUCT_DESCRIPTION` | нет | Описание в счёте |
+| `TELEGRAM_PROXY` | нет | Прокси до `api.telegram.org`, если с сервера/ПК API недоступен |
+
+## Запуск на VPS 24/7 (без ПК)
+
+Идея: каталог бота лежит на сервере (например `/opt/alesvpn-telegram`), процесс поднимает **systemd** — после перезагрузки VPS бот стартует сам.
+
+### 1. Скопировать проект на сервер
+
+С **Windows** (PowerShell), из папки репозитория или с указанием пути:
+
+```powershell
+scp -r C:\MyVPN\bots\telegram root@ВАШ_IP:/opt/alesvpn-telegram
+```
+
+На сервере (SSH):
+
+```bash
+cd /opt/alesvpn-telegram
+apt update && apt install -y python3 python3-venv python3-pip
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+nano .env
+```
+
+В **`.env`** на сервере — те же `BOT_TOKEN`, `ADMIN_IDS`, при необходимости **`TELEGRAM_PROXY` убрать** (с VPS Telegram API обычно доступен без прокси). Права:
+
+```bash
+chmod 600 .env
+```
+
+### 2. Systemd
+
+Пример unit-файла: [`deploy/ales-bot.service`](deploy/ales-bot.service). Пути уже под `/opt/alesvpn-telegram`.
+
+```bash
+sudo cp /opt/alesvpn-telegram/deploy/ales-bot.service /etc/systemd/system/ales-bot.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now ales-bot
+sudo systemctl status ales-bot
+```
+
+Логи:
+
+```bash
+journalctl -u ales-bot -f
+```
+
+Правки кода на сервере — снова `scp` или `git pull`, затем `sudo systemctl restart ales-bot`.
+
+### 3. ПК
+
+Можно **остановить** локальный `python -m ales_bot` (Ctrl+C), чтобы не было двух копий с одним токеном — иначе оба дерутся за `getUpdates`. На VPS должен работать **один** процесс.
 
 ## Оплата в рублях (ЮKassa и др.)
 
@@ -51,7 +104,7 @@ python -m ales_bot
 
 - Выдача ключа автоматически: связка с VPS API или скриптом `wg-add-peer` (отдельная задача, нужна безопасность).
 - Учёт платежей в БД (SQLite) вместо только уведомлений.
-- Запуск на VPS: `systemd` unit или Docker.
+- Docker-обёртка (по желанию).
 
 ## Юридически
 

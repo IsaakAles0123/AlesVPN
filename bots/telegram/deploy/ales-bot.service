@@ -1,0 +1,23 @@
+# Пример для Ubuntu/Debian. Скопируйте в /etc/systemd/system/ales-bot.service
+# и поправьте пути под ваш сервер.
+#
+# sudo cp deploy/ales-bot.service /etc/systemd/system/ales-bot.service
+# sudo systemctl daemon-reload
+# sudo systemctl enable --now ales-bot
+
+[Unit]
+Description=AlesVPN Telegram payment bot (aiogram)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/alesvpn-telegram
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/alesvpn-telegram/.venv/bin/python -m ales_bot
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
