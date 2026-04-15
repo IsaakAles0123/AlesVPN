@@ -1,0 +1,76 @@
+name: AlesVPN
+options:
+  bundleIdPrefix: com.myvpn.app
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+packages:
+  WireGuardApple:
+    url: https://github.com/WireGuard/wireguard-apple
+    branch: master
+
+targets:
+  AlesVPN:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: AlesVPN/Sources/App
+    dependencies:
+      - target: PacketTunnel
+        embed: true
+    settings:
+      base:
+        PRODUCT_NAME: AlesVPN
+        PRODUCT_BUNDLE_IDENTIFIER: com.myvpn.app.alesvpn
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.0"
+        CURRENT_PROJECT_VERSION: "1"
+        MARKETING_VERSION: "0.1.0"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: AlesVPN
+        INFOPLIST_KEY_UILaunchScreen_Generation: true
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+    entitlements:
+      path: AlesVPN/Resources/App/AlesVPN.entitlements
+
+  PacketTunnel:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: AlesVPN/Sources/Extension
+    dependencies:
+      - package: WireGuardApple
+        product: WireGuardKit
+    settings:
+      base:
+        PRODUCT_NAME: PacketTunnel
+        PRODUCT_BUNDLE_IDENTIFIER: com.myvpn.app.alesvpn.PacketTunnel
+        SWIFT_VERSION: "5.0"
+        CURRENT_PROJECT_VERSION: "1"
+        MARKETING_VERSION: "0.1.0"
+        GENERATE_INFOPLIST_FILE: NO
+    entitlements:
+      path: AlesVPN/Resources/Extension/PacketTunnel.entitlements
+    info:
+      path: AlesVPN/Resources/Extension/Info.plist
+
+schemes:
+  AlesVPN:
+    build:
+      targets:
+        AlesVPN: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
