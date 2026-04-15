@@ -51,3 +51,7 @@ sudo wg-remove-peer.sh 'ПУБЛИЧНЫЙ_КЛЮЧ_КЛИЕНТА'
 ## Если `wg syncconf` недоступен
 
 Скрипты выполняют `wg-quick down` / `wg-quick up` — кратковременный обрыв всех текущих сессий на этом интерфейсе.
+
+## Связка с Telegram-ботом (`bots/telegram`)
+
+После оплаты Stars бот может сам вызывать `wg-add-peer.sh` (см. переменные `WG_*` в `bots/telegram/README.md`). Удобно держать скрипт в `/usr/local/bin/` и запускать **unit systemd бота от root** на том же VPS, где крутится `wg0`.

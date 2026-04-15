@@ -34,8 +34,14 @@ def _make_bot_session() -> AiohttpSession | None:
 
 async def main() -> None:
     settings = load_settings()
-    await init_db_async(settings.db_path)
+    await init_db_async(settings.db_path, wg_first_octet=settings.wg_octet_min)
     logger.info("База оплат: %s", settings.db_path.resolve())
+    if settings.wg_auto_provision:
+        logger.info(
+            "Автовыдача WireGuard: endpoint=%s, скрипт=%s",
+            settings.wg_endpoint,
+            settings.wg_add_peer_script,
+        )
     session = _make_bot_session()
     if session is not None:
         logger.info("Используется прокси для Telegram API (TELEGRAM_PROXY).")

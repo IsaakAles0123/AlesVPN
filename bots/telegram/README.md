@@ -45,8 +45,22 @@ python -m ales_bot
 | `TELEGRAM_PROXY` | нет | Прокси до `api.telegram.org`, если с сервера/ПК API недоступен |
 | `DB_PATH` | нет | Путь к SQLite с учётом оплат (по умолчанию `.payments.sqlite` в рабочей папке) |
 | `SUPPORT_USERNAME` | нет | Логин поддержки в Telegram без `@` — показывается в `/help` |
+| `WG_AUTO_PROVISION` | нет | `true` / `1` — после Stars генерировать ключ, вызывать `wg-add-peer.sh`, прислать конфиг пользователю |
+| `WG_SERVER_PUBLIC_KEY` | при автовыдаче | Публичный ключ **сервера** WireGuard (как `wg_vendor_server_public_key` в Android) |
+| `WG_ENDPOINT` | при автовыдаче | `IP:порт` сервера (как в приложении) |
+| `WG_ADD_PEER_SCRIPT` | нет | Путь к `wg-add-peer.sh` (по умолчанию `/usr/local/bin/wg-add-peer.sh`) |
+| `WG_SUBNET_PREFIX` | нет | Первые три октета, например `10.8.0` |
+| `WG_OCTET_MIN` / `WG_OCTET_MAX` | нет | Диапазон последнего октета клиента (по умолчанию 20–250) |
 
 После оплаты запись пишется в базу; админы могут смотреть последние оплаты командой **`/stats`**.
+
+### Автовыдача WireGuard
+
+Работает только на **Linux VPS**, где уже поднят `wg0` и установлены **`wireguard-tools`** (`wg`, `wg-quick`). На том же хосте, что и бот (или с тем же доступом к `wg0.conf`), должен лежать скрипт [`server/wg-add-peer.sh`](../../server/wg-add-peer.sh) — скопируйте в `/usr/local/bin/`, `chmod +x`, запускайте unit бота **от root** (как в примере `deploy/ales-bot.service`), иначе `wg-add-peer` не сможет править `/etc/wireguard/`.
+
+Бот: генерирует пару ключей (`wg genkey` / `wg pubkey`), выделяет следующий IP из пула `10.8.0.N` (учёт в SQLite), вызывает `wg-add-peer.sh <pub> N/32`, отправляет пользователю **две строки** для вставки в AlesVPN и файл `alesvpn.conf`.
+
+Параметры `WG_SERVER_PUBLIC_KEY`, `WG_ENDPOINT`, DNS и AllowedIPs должны **совпадать** с тем, что зашито в приложении (`mobile/android/.../values/strings.xml`), иначе туннель не поднимется.
 
 ## Запуск на VPS 24/7 (без ПК)
 
@@ -116,8 +130,8 @@ journalctl -u ales-bot -f
 
 ## Что дальше
 
-- Выдача ключа автоматически: связка с VPS API или скриптом `wg-add-peer` (отдельная задача, нужна безопасность).
-- Учёт оплат в SQLite уже включён (файл из `DB_PATH`); при необходимости — бэкап этого файла на VPS.
+- Экспорт оплат в CSV, уведомления в канал, отзыв ключа по команде — по необходимости.
+- Учёт оплат и пул IP — в SQLite (`DB_PATH` + таблица `wg_meta`); делайте бэкап на VPS.
 - Docker-обёртка (по желанию).
 
 ## Юридически
