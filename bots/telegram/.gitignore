@@ -2,3 +2,7 @@
 __pycache__/
 *.pyc
 .env
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm

@@ -13,6 +13,7 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from ales_bot.config import load_settings
+from ales_bot.db import init_db_async
 from ales_bot.handlers import common, payments
 from ales_bot.middlewares import SettingsMiddleware
 
@@ -33,6 +34,8 @@ def _make_bot_session() -> AiohttpSession | None:
 
 async def main() -> None:
     settings = load_settings()
+    await init_db_async(settings.db_path)
+    logger.info("База оплат: %s", settings.db_path.resolve())
     session = _make_bot_session()
     if session is not None:
         logger.info("Используется прокси для Telegram API (TELEGRAM_PROXY).")

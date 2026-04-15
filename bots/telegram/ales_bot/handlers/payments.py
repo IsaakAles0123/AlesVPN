@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+import html
 import logging
 
 from aiogram import Bot, F, Router
 from aiogram.filters import Command
-from aiogram.types import LabeledPrice, Message, PreCheckoutQuery
+from aiogram.types import (
+    CallbackQuery,
+    LabeledPrice,
+    Message,
+    PreCheckoutQuery,
+)
 
 from ales_bot.config import Settings, is_admin
+from ales_bot.db import insert_payment_async, list_recent_payments_async, payment_count_async
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +31,13 @@ def _stars_prices(settings: Settings) -> list[LabeledPrice]:
     ]
 
 
-@router.message(Command("buy"))
-async def cmd_buy(message: Message, bot: Bot, settings: Settings) -> None:
+async def _send_invoice(
+    chat_id: int,
+    bot: Bot,
+    settings: Settings,
+) -> None:
     await bot.send_invoice(
-        chat_id=message.chat.id,
+        chat_id=chat_id,
         title=settings.product_title[:32],
         description=settings.product_description[:255],
         payload=settings.invoice_payload,
@@ -36,13 +46,26 @@ async def cmd_buy(message: Message, bot: Bot, settings: Settings) -> None:
     )
 
 
+@router.message(Command("buy"))
+async def cmd_buy(message: Message, bot: Bot, settings: Settings) -> None:
+    await _send_invoice(message.chat.id, bot, settings)
+
+
+@router.callback_query(F.data == "buy")
+async def callback_buy(query: CallbackQuery, bot: Bot, settings: Settings) -> None:
+    await query.answer()
+    if query.message is None:
+        return
+    await _send_invoice(query.message.chat.id, bot, settings)
+
+
 @router.pre_checkout_query()
 async def pre_checkout(query: PreCheckoutQuery, bot: Bot, settings: Settings) -> None:
     if query.invoice_payload != settings.invoice_payload:
         await bot.answer_pre_checkout_query(
             query.id,
             ok=False,
-            error_message="Неверный счёт. Запросите /buy снова.",
+            error_message="Неверный счёт. Запросите оплату снова (/buy или кнопка).",
         )
         return
     await bot.answer_pre_checkout_query(query.id, ok=True)
@@ -57,23 +80,41 @@ async def successful_payment(message: Message, settings: Settings, bot: Bot) -> 
     uid = message.from_user.id if message.from_user else 0
     uname = message.from_user.username if message.from_user else None
 
+    inserted = await insert_payment_async(
+        settings.db_path,
+        telegram_charge_id=sp.telegram_payment_charge_id,
+        user_id=uid,
+        username=uname,
+        amount=sp.total_amount,
+        currency=sp.currency,
+        invoice_payload=sp.invoice_payload,
+    )
+    if not inserted:
+        logger.warning(
+            "Повторное событие оплаты (charge_id уже в базе): %s",
+            sp.telegram_payment_charge_id,
+        )
+
+    user_link = f'<a href="tg://user?id={uid}">профиль</a>' if uid else "—"
     lines = [
         "Новая оплата (Stars)",
-        f"user_id: <code>{uid}</code>",
+        f"user_id: <code>{uid}</code> ({user_link})",
     ]
     if uname:
-        lines.append(f"username: @{uname}")
+        lines.append(f"username: @{html.escape(uname)}")
     lines.extend(
         [
             f"total: {sp.total_amount} {sp.currency}",
-            f"payload: <code>{sp.invoice_payload}</code>",
-            f"telegram_charge_id: <code>{sp.telegram_payment_charge_id}</code>",
+            f"payload: <code>{html.escape(sp.invoice_payload)}</code>",
+            f"telegram_charge_id: <code>{html.escape(sp.telegram_payment_charge_id)}</code>",
         ]
     )
     admin_text = "\n".join(lines)
 
+    uid_line = f"\n\nВаш ID: <code>{uid}</code> — сохраните, если поддержка попросит."
     await message.answer(
-        "Оплата прошла успешно. Администратор скоро отправит данные для входа в VPN.",
+        "Оплата прошла успешно. Администратор скоро отправит данные для входа в VPN."
+        + uid_line,
     )
 
     for admin_id in settings.admin_ids:
@@ -81,6 +122,31 @@ async def successful_payment(message: Message, settings: Settings, bot: Bot) -> 
             await bot.send_message(admin_id, admin_text)
         except Exception as e:
             logger.warning("Не удалось уведомить админа %s: %s", admin_id, e)
+
+
+@router.message(Command("stats"))
+async def cmd_stats(message: Message, settings: Settings) -> None:
+    uid = message.from_user.id if message.from_user else 0
+    if not is_admin(uid, settings):
+        await message.answer("Нет доступа.")
+        return
+    total = await payment_count_async(settings.db_path)
+    rows = await list_recent_payments_async(settings.db_path, limit=15)
+    if not rows:
+        await message.answer(f"Записей об оплатах пока нет. Всего в базе: {total}.")
+        return
+    lines = [f"<b>Оплаты</b> (всего: {total})\n"]
+    for r in rows:
+        uname = f"@{html.escape(r.username)}" if r.username else "—"
+        ch = html.escape(r.telegram_charge_id)
+        lines.append(
+            f"{html.escape(r.created_at)} | <code>{r.user_id}</code> {uname} | "
+            f"{r.amount} {html.escape(r.currency)}\n<code>{ch}</code>"
+        )
+    text = "\n".join(lines)
+    if len(text) > 3900:
+        text = text[:3890] + "…"
+    await message.answer(text)
 
 
 @router.message(Command("admin_ping"))
