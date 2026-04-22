@@ -18,6 +18,7 @@
     <string name="ales_purchase_url_unset">Укажите ссылку в ales_purchase_url (res/values/strings.xml)</string>
     <string name="ales_purchase_url_open_error">Не удалось открыть ссылку</string>
     <string name="ales_purchase_url_no_browser">Нет приложения для ссылок (установите браузер)</string>
+    <string name="ales_purchase_url_example_com">В ales_purchase_url указан example.com — это не ваш сайт. Поставьте http://10.0.2.2:8080/ (эмулятор) или свой https://… и переустановите APK.</string>
 
     <!--
       Лендинг: c:\MyVPN\web + «python -m http.server 8080».

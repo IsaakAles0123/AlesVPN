@@ -79,6 +79,11 @@ private fun openPurchaseUrl(ctx: Context) {
         Toast.makeText(ctx, R.string.ales_purchase_url_unset, Toast.LENGTH_LONG).show()
         return
     }
+    val host = runCatching { Uri.parse(u).host?.lowercase() }.getOrNull().orEmpty()
+    if (host == "example.com" || host.endsWith(".example.com")) {
+        Toast.makeText(ctx, R.string.ales_purchase_url_example_com, Toast.LENGTH_LONG).show()
+        return
+    }
     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(u))
     if (intent.resolveActivity(ctx.packageManager) == null) {
         Toast.makeText(ctx, R.string.ales_purchase_url_no_browser, Toast.LENGTH_LONG).show()
