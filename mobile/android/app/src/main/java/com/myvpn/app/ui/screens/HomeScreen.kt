@@ -1,5 +1,6 @@
 package com.myvpn.app.ui.screens
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -55,24 +56,7 @@ fun HomeScreen(
                 onSelectServer = { selectedServerIndex = it },
                 onKeySetupClick = onOpenKeySetup,
                 onPlusClick = {
-                    val u = ctx.getString(R.string.ales_purchase_url).trim()
-                    if (u.startsWith("http://") || u.startsWith("https://")) {
-                        runCatching {
-                            ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(u)))
-                        }.onFailure {
-                            Toast.makeText(
-                                ctx,
-                                R.string.ales_purchase_url_open_error,
-                                Toast.LENGTH_LONG,
-                            ).show()
-                        }
-                    } else {
-                        Toast.makeText(
-                            ctx,
-                            R.string.ales_purchase_url_unset,
-                            Toast.LENGTH_LONG,
-                        ).show()
-                    }
+                    openPurchaseUrl(ctx)
                 },
                 onPowerClick = {
                     when (viewModel.tunnelState) {
@@ -86,5 +70,23 @@ fun HomeScreen(
                     .fillMaxHeight(),
             )
         }
+    }
+}
+
+private fun openPurchaseUrl(ctx: Context) {
+    val u = ctx.getString(R.string.ales_purchase_url).trim()
+    if (u.isEmpty() || (!u.startsWith("http://") && !u.startsWith("https://"))) {
+        Toast.makeText(ctx, R.string.ales_purchase_url_unset, Toast.LENGTH_LONG).show()
+        return
+    }
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(u))
+    if (intent.resolveActivity(ctx.packageManager) == null) {
+        Toast.makeText(ctx, R.string.ales_purchase_url_no_browser, Toast.LENGTH_LONG).show()
+        return
+    }
+    try {
+        ctx.startActivity(intent)
+    } catch (_: Exception) {
+        Toast.makeText(ctx, R.string.ales_purchase_url_open_error, Toast.LENGTH_LONG).show()
     }
 }

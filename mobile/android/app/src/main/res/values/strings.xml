@@ -17,6 +17,7 @@
     <string name="wg_error_no_key">Сначала откройте настройки (шестерёнка) и сохраните ключ и IP в сети VPN.</string>
     <string name="ales_purchase_url_unset">Укажите ссылку в ales_purchase_url (res/values/strings.xml)</string>
     <string name="ales_purchase_url_open_error">Не удалось открыть ссылку</string>
+    <string name="ales_purchase_url_no_browser">Нет приложения для ссылок (установите браузер)</string>
 
     <!-- URL лендинга (см. папка web/). Замените на размещённый сайт. -->
     <string name="ales_purchase_url" translatable="false">https://example.com/alesvpn</string>
