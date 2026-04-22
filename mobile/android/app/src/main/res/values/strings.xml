@@ -20,12 +20,8 @@
     <string name="ales_purchase_url_no_browser">Нет приложения для ссылок (установите браузер)</string>
     <string name="ales_purchase_url_example_com">В ales_purchase_url указан example.com — это не ваш сайт. Поставьте http://10.0.2.2:8080/ (эмулятор) или свой https://… и переустановите APK.</string>
 
-    <!--
-      Лендинг: c:\MyVPN\web + «python -m http.server 8080».
-      НЕ используй example.com — это чужой сайт, не твой index.html.
-      Эмулятор: http://10.0.2.2:8080/ | ПК в браузере: http://127.0.0.1:8080/ | Телефон в Wi‑Fi: http://IP_ПК:8080/ | Прод: https://…
-    -->
-    <string name="ales_purchase_url" translatable="false">http://10.0.2.2:8080/</string>
+    <!-- Лендинг на сервере: https://alesvpn.ru/ (локальная отладка: python -m http.server в web/) -->
+    <string name="ales_purchase_url" translatable="false">https://alesvpn.ru/</string>
 
     <!-- Должен совпадать с «interface: public key» на сервере (sudo wg). -->
     <string name="wg_vendor_server_public_key" translatable="false">Rc1neiBkkHNmwFV/2YiWsVJyEc9V0rQm03QnMaWR7Qs=</string>
