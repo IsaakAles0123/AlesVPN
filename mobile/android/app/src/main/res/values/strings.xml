@@ -15,6 +15,11 @@
     <string name="toast_empty_url">Укажите базовый URL</string>
     <string name="log_connect_ok">Туннель на устройстве поднят (проверьте сервер на ПК).</string>
     <string name="wg_error_no_key">Сначала откройте настройки (шестерёнка) и сохраните ключ и IP в сети VPN.</string>
+    <string name="ales_purchase_url_unset">Укажите ссылку в ales_purchase_url (res/values/strings.xml)</string>
+    <string name="ales_purchase_url_open_error">Не удалось открыть ссылку</string>
+
+    <!-- URL лендинга (см. папка web/). Замените на размещённый сайт. -->
+    <string name="ales_purchase_url" translatable="false">https://example.com/alesvpn</string>
 
     <!-- Должен совпадать с «interface: public key» на сервере (sudo wg). -->
     <string name="wg_vendor_server_public_key" translatable="false">Rc1neiBkkHNmwFV/2YiWsVJyEc9V0rQm03QnMaWR7Qs=</string>

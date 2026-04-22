@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="AlesVPN — доступ и ключ. Стиль в духе приложения: космос, неон."
+    />
+    <title>AlesVPN</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/style.css" />
+  </head>
+  <body>
+    <canvas id="star-canvas" aria-hidden="true"></canvas>
+    <div id="bg" aria-hidden="true">
+      <div class="stars-css"></div>
+      <div class="glow-tr"></div>
+      <div class="glow-bl"></div>
+      <div class="earth"></div>
+    </div>
+
+    <div class="wrap">
+      <header>
+        <a class="logo" href="#">
+          <span></span>
+          AlesVPN
+        </a>
+        <nav>
+          <a href="#как">Как это устроено</a>
+        </nav>
+      </header>
+
+      <p class="pill">WireGuard <b>и приложение AlesVPN</b></p>
+      <h1>Доступ и ключ — без путаницы</h1>
+      <p class="sub">
+        Сайт для оформления, пока туннель ещё не настроен. Космический
+        визуальный тот же, что в клиенте: тёмный фон, циан и пурпур, лёгкое
+        сияние.
+      </p>
+
+      <div class="cta">
+        <a class="btn btn-main" id="link-pay" href="https://example.com/alesvpn"
+          >Получить доступ</a
+        >
+        <a
+          class="btn btn-ghost"
+          id="link-tg"
+          href="https://t.me/"
+          target="_blank"
+          rel="noopener"
+          >Бот в Telegram</a
+        >
+      </div>
+
+      <h2 id="как">Зачем сайт рядом с ботом</h2>
+      <div class="grid">
+        <div class="card">
+          <div class="ic" aria-hidden="true">◈</div>
+          <h3>До первого VPN</h3>
+          <p>
+            Оплата в браузере, если мессенджер с телефона без туннеля
+            не открывается.
+          </p>
+        </div>
+        <div class="card">
+          <div class="ic" aria-hidden="true">✦</div>
+          <h3>Тот же стиль</h3>
+          <p>Цвета #050508, #B366FF, #00E5FF — как в теме AlesVPN на Android.</p>
+        </div>
+        <div class="card">
+          <div class="ic" aria-hidden="true">⚡</div>
+          <h3>Ключ в приложение</h3>
+          <p>Две строки в настройки AlesVPN — дальше подключение на устройстве.</p>
+        </div>
+      </div>
+
+      <h2>Шаги</h2>
+      <ol class="steps">
+        <li>Оплати или оставь заявку (подключи свою ссылку на кнопке выше).</li>
+        <li>
+          Получи приватный ключ и <code>10.8.0.x/32</code> (или тот пул, что
+          даст сервер).
+        </li>
+        <li>Открой AlesVPN → шестерёнка → вставь строки → сохрани.</li>
+      </ol>
+
+      <footer>
+        <p id="y">AlesVPN · com.myvpn.app</p>
+        <p><a id="link-mail" href="mailto:support@example.com">Почта</a></p>
+      </footer>
+    </div>
+
+    <div
+      id="config"
+      data-pay="https://example.com/alesvpn"
+      data-tg="https://t.me/"
+      data-mail="support@example.com"
+      hidden
+    ></div>
+    <script>
+      (function () {
+        var n = document.getElementById("config");
+        if (n) {
+          var p = n.getAttribute("data-pay");
+          var t = n.getAttribute("data-tg");
+          var m = n.getAttribute("data-mail");
+          if (p) {
+            var a = document.getElementById("link-pay");
+            if (a) a.href = p;
+          }
+          if (t) {
+            var b = document.getElementById("link-tg");
+            if (b) b.href = t;
+          }
+          if (m) {
+            var c = document.getElementById("link-mail");
+            if (c) c.href = "mailto:" + m;
+          }
+        }
+        var y = document.getElementById("y");
+        if (y) y.textContent = "© " + new Date().getFullYear() + " · AlesVPN · com.myvpn.app";
+      })();
+    </script>
+    <script src="assets/stars.js" defer></script>
+  </body>
+</html>

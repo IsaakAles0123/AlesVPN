@@ -1,5 +1,7 @@
 package com.myvpn.app.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -18,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.myvpn.app.MainViewModel
+import com.myvpn.app.R
 import com.myvpn.app.ui.components.NeonBackground
 import com.myvpn.app.ui.components.dashboard.VpnRefDashboard
 import com.myvpn.app.ui.components.dashboard.rememberMockServers
@@ -52,7 +55,24 @@ fun HomeScreen(
                 onSelectServer = { selectedServerIndex = it },
                 onKeySetupClick = onOpenKeySetup,
                 onPlusClick = {
-                    Toast.makeText(ctx, "Get Plus", Toast.LENGTH_SHORT).show()
+                    val u = ctx.getString(R.string.ales_purchase_url).trim()
+                    if (u.startsWith("http://") || u.startsWith("https://")) {
+                        runCatching {
+                            ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(u)))
+                        }.onFailure {
+                            Toast.makeText(
+                                ctx,
+                                R.string.ales_purchase_url_open_error,
+                                Toast.LENGTH_LONG,
+                            ).show()
+                        }
+                    } else {
+                        Toast.makeText(
+                            ctx,
+                            R.string.ales_purchase_url_unset,
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    }
                 },
                 onPowerClick = {
                     when (viewModel.tunnelState) {
