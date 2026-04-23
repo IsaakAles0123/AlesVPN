@@ -95,27 +95,8 @@ async def _deliver_purchase(
                 wg_address=res.address_cidr,
                 wg_provision_error=None,
             )
-            paste_esc = html.escape(res.paste_two_lines)
-            await message.answer(
-                f"{paid_title}\n\n"
-                f"<pre>{paste_esc}</pre>\n\n"
-                "В приложении откройте настройку ключа и вставьте <b>две строки</b> "
-                "(приватный ключ и адрес). Ниже — полный файл для импорта в WireGuard."
-                + uid_line,
-            )
-            await message.answer_document(
-                BufferedInputFile(
-                    res.conf_text.encode("utf-8"),
-                    filename="alesvpn.conf",
-                ),
-                caption="Импорт в WireGuard или сохраните как текст конфигурации.",
-            )
-            wg_admin_extra = (
-                f"\nWG: <code>{html.escape(res.address_cidr)}</code> "
-                f"pub <code>{html.escape(res.public_key)}</code>"
-            )
         except Exception as e:
-            logger.exception("Автовыдача WireGuard не удалась")
+            logger.exception("Автовыдача WireGuard не удалась (ключ или БД)")
             err_t = str(e)[:800]
             await update_payment_wg_async(
                 settings.db_path,
@@ -133,7 +114,45 @@ async def _deliver_purchase(
                 )
                 + uid_line,
             )
-            wg_admin_extra = f"\n<b>Ошибка WG</b>: {html.escape(err_t)}"
+            wg_admin_extra = f"\n<b>Ошибка выдачи / БД</b>: {html.escape(err_t)}"
+        else:
+            paste_esc = html.escape(res.paste_two_lines)
+            try:
+                await message.answer(
+                    f"{paid_title}\n\n"
+                    f"<pre>{paste_esc}</pre>\n\n"
+                    "В приложении откройте настройку ключа и вставьте <b>две строки</b> "
+                    "(приватный ключ и адрес). Ниже — полный файл для импорта в WireGuard."
+                    + uid_line,
+                )
+                await message.answer_document(
+                    BufferedInputFile(
+                        res.conf_text.encode("utf-8"),
+                        filename="alesvpn.conf",
+                    ),
+                    caption="Импорт в WireGuard или сохраните как текст конфигурации.",
+                )
+            except Exception as e:
+                err_t = str(e)[:800]
+                logger.exception("Ключ в БД, но отправка в Telegram не удалась (таймаут/сеть)")
+                wg_admin_extra = (
+                    f"\nWG: <code>{html.escape(res.address_cidr)}</code> "
+                    f"pub <code>{html.escape(res.public_key)}</code>\n"
+                    f"<b>Ошибка Telegram API</b>: {html.escape(err_t)}"
+                )
+                try:
+                    await message.answer(
+                        "Ключ уже создан, но доставка в чат сорвалась (сеть или Telegram). "
+                        "Повторите /start — напишите в поддержку, пришлём вручную."
+                        + uid_line,
+                    )
+                except Exception:
+                    logger.warning("Не удалось ни ключ с файлом, ни короткое уведомление")
+            else:
+                wg_admin_extra = (
+                    f"\nWG: <code>{html.escape(res.address_cidr)}</code> "
+                    f"pub <code>{html.escape(res.public_key)}</code>"
+                )
     else:
         await message.answer(
             (
