@@ -15,6 +15,10 @@
 * {
   box-sizing: border-box;
 }
+::selection {
+  background: color-mix(in srgb, var(--purple) 45%, transparent);
+  color: var(--text);
+}
 html {
   scroll-behavior: smooth;
 }
@@ -24,6 +28,20 @@ body {
   color: var(--text);
   font-family: var(--font);
   background: var(--bg-0);
+}
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  background: var(--cyan);
+  color: #0a040e;
+  font-weight: 700;
+  border-radius: 8px;
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
 }
 
 #bg {
@@ -149,14 +167,23 @@ header {
   background: var(--cyan);
   box-shadow: 0 0 12px var(--cyan);
 }
-nav a {
+nav.nav a {
   color: var(--muted);
   text-decoration: none;
   font-weight: 600;
-  font-size: 0.9rem;
-  margin-left: 1rem;
+  font-size: 0.88rem;
+  margin-left: 0.85rem;
 }
-nav a:hover {
+nav.nav a:first-of-type {
+  margin-left: 0;
+}
+nav.nav a:hover {
+  color: var(--text);
+}
+nav.nav a:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 4px;
+  border-radius: 6px;
   color: var(--text);
 }
 
@@ -191,6 +218,21 @@ h1 {
   color: var(--cyan);
   font-weight: 600;
   margin-left: 0.35rem;
+}
+.dns-hint {
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--cyan) 6%, var(--bg-0));
+  border: 1px solid color-mix(in srgb, var(--cyan) 22%, transparent);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  margin: 0 0 1.25rem;
+  max-width: 55ch;
+}
+.dns-hint strong {
+  color: var(--text);
+  font-weight: 600;
 }
 .cta {
   display: flex;
@@ -232,11 +274,27 @@ h1 {
   border-color: color-mix(in srgb, var(--cyan) 50%, var(--line));
   background: color-mix(in srgb, var(--glass), var(--cyan) 8%);
 }
+.btn:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+.security {
+  margin: 0 0 2rem;
+  max-width: 55ch;
+  line-height: 1.6;
+  font-size: 0.95rem;
+  color: var(--muted);
+  padding: 1rem 1.1rem;
+  border-radius: 14px;
+  background: var(--glass);
+  border: 1px solid var(--line);
+}
 
 h2 {
   font-size: 1.3rem;
   font-weight: 800;
   margin: 0 0 1rem;
+  scroll-margin-top: 5rem;
 }
 .grid {
   display: grid;

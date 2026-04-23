@@ -28,7 +28,7 @@ cd C:\MyVPN\web
 scp -r index.html assets root@ВАШ_IP:/var/www/alesvpn/
 ```
 
-(Если `assets` — папка, так и уйдёт рекурсивно. Путь `C:\MyVPN\web` при необходимости поправь.)
+В `assets` входят `style.css`, `stars.js`, `favicon.svg` — весь каталог **целиком** перезаливай при обновлении лендинга.
 
 Если `scp` ругается, используй **WinSCP** / **FileZilla (SFTP)**:
 - хост: IP сервера, порт 22, пользователь `root`
