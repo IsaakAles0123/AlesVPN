@@ -66,14 +66,14 @@ body {
   background-size: 110% 110%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%,
     100% 100%, 100% 100%;
   animation: shift 100s ease-in-out infinite;
-  opacity: 0.78;
+  opacity: 0.86;
 }
 
 /* Статичный плотный слой — мелкие точки по всему экрану */
 .stars-css-dense {
   position: absolute;
   inset: 0;
-  opacity: 0.55;
+  opacity: 0.68;
   background-image: radial-gradient(0.55px 0.55px at 3% 7%, rgba(255, 255, 255, 0.4), transparent),
     radial-gradient(0.5px 0.5px at 11% 19%, rgba(255, 255, 255, 0.32), transparent),
     radial-gradient(0.45px 0.45px at 19% 4%, rgba(0, 229, 255, 0.2), transparent),
@@ -113,6 +113,59 @@ body {
     radial-gradient(0.45px 0.45px at 2% 58%, rgba(255, 255, 255, 0.2), transparent),
     radial-gradient(0.5px 0.5px at 97% 40%, rgba(255, 255, 255, 0.28), transparent);
   pointer-events: none;
+}
+
+/* Плитка 56×56 — повтор по всему вьюпорту, сотни мелких точек */
+.stars-tile {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.52;
+  background-size: 56px 56px;
+  background-repeat: repeat;
+  background-image: radial-gradient(0.5px 0.5px at 3px 2px, rgba(255, 255, 255, 0.45), transparent),
+    radial-gradient(0.4px 0.4px at 20px 20px, rgba(255, 255, 255, 0.32), transparent),
+    radial-gradient(0.45px 0.45px at 37px 33px, rgba(0, 229, 255, 0.18), transparent),
+    radial-gradient(0.35px 0.35px at 2px 4px, rgba(255, 255, 255, 0.25), transparent),
+    radial-gradient(0.4px 0.4px at 19px 17px, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(0.4px 0.4px at 36px 30px, rgba(255, 255, 255, 0.22), transparent),
+    radial-gradient(0.45px 0.45px at 12px 0px, rgba(255, 255, 255, 0.28), transparent),
+    radial-gradient(0.35px 0.35px at 26px 13px, rgba(179, 102, 255, 0.12), transparent),
+    radial-gradient(0.4px 0.4px at 11px 39px, rgba(255, 255, 255, 0.33), transparent),
+    radial-gradient(0.4px 0.4px at 28px 6px, rgba(0, 229, 255, 0.1), transparent),
+    radial-gradient(0.4px 0.4px at 45px 1px, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(0.4px 0.4px at 9px 18px, rgba(255, 255, 255, 0.26), transparent),
+    radial-gradient(0.35px 0.35px at 1px 12px, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(0.4px 0.4px at 33px 2px, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(0.4px 0.4px at 50px 8px, rgba(255, 255, 255, 0.15), transparent),
+    radial-gradient(0.4px 0.4px at 6px 25px, rgba(255, 255, 255, 0.28), transparent),
+    radial-gradient(0.35px 0.35px at 15px 8px, rgba(0, 229, 255, 0.12), transparent),
+    radial-gradient(0.45px 0.45px at 32px 21px, rgba(255, 255, 255, 0.24), transparent),
+    radial-gradient(0.35px 0.35px at 42px 12px, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(0.4px 0.4px at 24px 38px, rgba(255, 255, 255, 0.3), transparent);
+}
+.stars-tile-b {
+  opacity: 0.38;
+  background-position: 28px 14px;
+  background-image: radial-gradient(0.45px 0.45px at 11px 2px, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(0.4px 0.4px at 2px 13px, rgba(255, 255, 255, 0.25), transparent),
+    radial-gradient(0.4px 0.4px at 21px 24px, rgba(0, 229, 255, 0.12), transparent),
+    radial-gradient(0.35px 0.35px at 40px 35px, rgba(255, 255, 255, 0.22), transparent),
+    radial-gradient(0.4px 0.4px at 3px 46px, rgba(255, 255, 255, 0.28), transparent),
+    radial-gradient(0.4px 0.4px at 22px 1px, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(0.4px 0.4px at 41px 12px, rgba(255, 255, 255, 0.26), transparent),
+    radial-gradient(0.35px 0.35px at 2px 23px, rgba(255, 255, 255, 0.18), transparent),
+    radial-gradient(0.45px 0.45px at 21px 34px, rgba(179, 102, 255, 0.1), transparent),
+    radial-gradient(0.4px 0.4px at 40px 45px, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(0.4px 0.4px at 1px 0px, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(0.4px 0.4px at 20px 11px, rgba(0, 229, 255, 0.1), transparent),
+    radial-gradient(0.35px 0.35px at 0px 33px, rgba(255, 255, 255, 0.24), transparent),
+    radial-gradient(0.4px 0.4px at 19px 44px, rgba(255, 255, 255, 0.22), transparent),
+    radial-gradient(0.4px 0.4px at 38px 1px, rgba(255, 255, 255, 0.26), transparent),
+    radial-gradient(0.4px 0.4px at 17px 10px, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(0.4px 0.4px at 36px 21px, rgba(255, 255, 255, 0.32), transparent),
+    radial-gradient(0.4px 0.4px at 15px 32px, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(0.4px 0.4px at 34px 43px, rgba(255, 255, 255, 0.15), transparent);
 }
 
 @keyframes shift {
@@ -184,7 +237,7 @@ body {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.65;
+  opacity: 0.8;
 }
 
 .wrap {
@@ -429,6 +482,10 @@ footer a:hover {
     animation: none;
   }
   .stars-css-dense {
-    opacity: 0.4;
+    opacity: 0.35;
+  }
+  .stars-tile,
+  .stars-tile-b {
+    opacity: 0.22;
   }
 }
