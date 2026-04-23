@@ -21,8 +21,12 @@ from html import escape
 from pathlib import Path
 from typing import Any
 
+# Каталог pay_api (для import yk_store при запуске: uvicorn pay_api.main:app)
+_PA = Path(__file__).resolve().parent
+if str(_PA) not in sys.path:
+    sys.path.insert(0, str(_PA))
 # ../bots/telegram/ales_bot
-_T = Path(__file__).resolve().parent.parent / "bots" / "telegram"
+_T = _PA.parent / "bots" / "telegram"
 if str(_T) not in sys.path:
     sys.path.insert(0, str(_T))
 
