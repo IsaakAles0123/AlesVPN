@@ -28,12 +28,34 @@
   </head>
   <body>
     <a class="skip-link" href="#content">К содержанию</a>
-    <canvas id="star-canvas" aria-hidden="true"></canvas>
     <div id="bg" aria-hidden="true">
       <div class="stars-css"></div>
       <div class="stars-css-dense" aria-hidden="true"></div>
       <div class="stars-tile" aria-hidden="true"></div>
       <div class="stars-tile stars-tile-b" aria-hidden="true"></div>
+      <canvas id="star-canvas" aria-hidden="true"></canvas>
+      <div class="comets" aria-hidden="true">
+        <span
+          class="comet"
+          style="--comet-dur: 13s; --comet-delay: 0s; --comet-rot: atan2(70vh, 85vw); --comet-sx: 5vw; --comet-sy: 8vh; --comet-ex: 90vw; --comet-ey: 78vh; --comet-scale: 0.9"
+        ></span>
+        <span
+          class="comet"
+          style="--comet-dur: 17s; --comet-delay: 3.2s; --comet-rot: atan2(48vh, 75vw); --comet-sx: 20vw; --comet-sy: 2vh; --comet-ex: 95vw; --comet-ey: 50vh; --comet-scale: 0.75"
+        ></span>
+        <span
+          class="comet"
+          style="--comet-dur: 11s; --comet-delay: 6.5s; --comet-rot: atan2(55vh, 82vw); --comet-sx: -2vw; --comet-sy: 35vh; --comet-ex: 80vw; --comet-ey: 90vh; --comet-scale: 0.65"
+        ></span>
+        <span
+          class="comet"
+          style="--comet-dur: 20s; --comet-delay: 1.8s; --comet-rot: atan2(86vh, 69vw); --comet-sx: 3vw; --comet-sy: 2vh; --comet-ex: 72vw; --comet-ey: 88vh; --comet-scale: 0.7"
+        ></span>
+        <span
+          class="comet"
+          style="--comet-dur: 15s; --comet-delay: 8.2s; --comet-rot: atan2(38vh, 52vw); --comet-sx: 48vw; --comet-sy: 0vh; --comet-ex: 100vw; --comet-ey: 38vh; --comet-scale: 0.55"
+        ></span>
+      </div>
       <div class="glow-tr"></div>
       <div class="glow-bl"></div>
       <div class="earth"></div>
@@ -76,7 +98,7 @@
         <a
           class="btn btn-ghost"
           id="link-tg"
-          href="https://t.me/"
+          href="https://t.me/AlesVPN_bot"
           target="_blank"
           rel="noopener noreferrer"
           >Бот в Telegram</a
@@ -122,8 +144,8 @@
       <h2 id="шаги">Шаги</h2>
       <ol class="steps">
         <li>
-          Оплати или оставь заявку — ссылку на оплату/почту подставь в настройки
-          ниже на странице (блок <code>data-*</code>).
+          Оплати или оставь заявку — актуальные ссылки «Получить доступ», Telegram
+          и почта в шапке страницы.
         </li>
         <li>
           Получи <strong>приватный ключ</strong> и адрес в сети, например
@@ -144,7 +166,7 @@
       <footer>
         <p id="y">AlesVPN · com.myvpn.app</p>
         <p>
-          <a id="link-mail" href="mailto:support@alesvpn.ru?subject=AlesVPN%20доступ"
+          <a id="link-mail" href="mailto:isip_i.v.aleskerov@mpt.ru?subject=AlesVPN%20доступ"
             >Почта</a
           >
         </p>
@@ -154,8 +176,8 @@
     <div
       id="config"
       data-pay="https://alesvpn.ru/"
-      data-tg="https://t.me/"
-      data-mail="support@alesvpn.ru"
+      data-tg="https://t.me/AlesVPN_bot"
+      data-mail="isip_i.v.aleskerov@mpt.ru"
       hidden
     ></div>
     <script>
