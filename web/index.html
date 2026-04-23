@@ -67,11 +67,13 @@
           <span aria-hidden="true"></span>
           AlesVPN
         </a>
-        <nav class="nav" aria-label="Разделы страницы">
-          <a href="#зачем">Почему сайт</a>
-          <a href="#шаги">Шаги</a>
-          <a href="#безопасность">Данные</a>
-        </nav>
+        <a
+          class="header-download btn btn-ghost"
+          id="link-apk"
+          href="assets/alesvpn.apk"
+          download="AlesVPN.apk"
+          >Скачать APK</a
+        >
       </header>
 
       <p class="pill">WireGuard <b>и приложение AlesVPN</b></p>
@@ -144,8 +146,8 @@
       <h2 id="шаги">Шаги</h2>
       <ol class="steps">
         <li>
-          Оплати или оставь заявку — актуальные ссылки «Получить доступ», Telegram
-          и почта в шапке страницы.
+          Оплати или оставь заявку — ссылки «Получить доступ» и Telegram выше, почта
+          внизу страницы.
         </li>
         <li>
           Получи <strong>приватный ключ</strong> и адрес в сети, например
@@ -164,12 +166,8 @@
       </p>
 
       <footer>
-        <p id="y">AlesVPN · com.myvpn.app</p>
-        <p>
-          <a id="link-mail" href="mailto:isip_i.v.aleskerov@mpt.ru?subject=AlesVPN%20доступ"
-            >Почта</a
-          >
-        </p>
+        <p id="y">AlesVPN · AlesVPN.ru</p>
+        <p class="footer-email">isip_i.v.aleskerov@mpt.ru</p>
       </footer>
     </div>
 
@@ -177,7 +175,7 @@
       id="config"
       data-pay="https://alesvpn.ru/"
       data-tg="https://t.me/AlesVPN_bot"
-      data-mail="isip_i.v.aleskerov@mpt.ru"
+      data-apk="assets/alesvpn.apk"
       hidden
     ></div>
     <script>
@@ -186,7 +184,7 @@
         if (n) {
           var p = n.getAttribute("data-pay");
           var t = n.getAttribute("data-tg");
-          var m = n.getAttribute("data-mail");
+          var k = n.getAttribute("data-apk");
           if (p) {
             var a = document.getElementById("link-pay");
             if (a) a.href = p;
@@ -195,20 +193,17 @@
             var b = document.getElementById("link-tg");
             if (b) b.href = t;
           }
-          if (m) {
-            var c = document.getElementById("link-mail");
-            if (c)
-              c.href =
-                "mailto:" +
-                m +
-                "?subject=" +
-                encodeURIComponent("AlesVPN — доступ");
+          if (k) {
+            var d = document.getElementById("link-apk");
+            if (d) {
+              d.href = k;
+            }
           }
         }
         var y = document.getElementById("y");
         if (y) {
           y.textContent =
-            "© " + new Date().getFullYear() + " · AlesVPN · com.myvpn.app";
+            "© " + new Date().getFullYear() + " · AlesVPN · AlesVPN.ru";
         }
         var h = document.getElementById("dns-hint");
         if (h && /^\d{1,3}(\.\d{1,3}){3}$/.test(location.hostname)) {

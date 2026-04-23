@@ -5,6 +5,7 @@
 **/local.properties
 **/captures/
 **/*.apk
+!web/assets/alesvpn.apk
 **/*.aab
 **/*.dex
 **/output.json

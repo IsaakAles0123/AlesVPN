@@ -315,6 +315,12 @@ header {
   gap: 0.75rem;
   padding: 0.25rem 0 1.75rem;
 }
+header .header-download {
+  padding: 0.52rem 1rem;
+  font-size: 0.86rem;
+  border-radius: 12px;
+  white-space: nowrap;
+}
 .logo {
   display: inline-flex;
   align-items: center;
@@ -533,6 +539,12 @@ footer a {
 }
 footer a:hover {
   text-decoration: underline;
+}
+footer .footer-email {
+  color: var(--cyan);
+  margin: 0;
+  font-weight: 600;
+  user-select: all;
 }
 @media (prefers-reduced-motion: reduce) {
   .glow-tr,
