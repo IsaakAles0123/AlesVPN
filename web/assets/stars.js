@@ -4,7 +4,7 @@
   if (!c) return;
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   var ctx = c.getContext("2d");
-  var w, h, d, stars, n = 85;
+  var w, h, d, stars, n = 260;
 
   function size() {
     d = window.devicePixelRatio || 1;
@@ -17,11 +17,12 @@
   function gen() {
     stars = [];
     for (var i = 0; i < n; i++) {
+      var micro = i < n * 0.45;
       stars.push({
         x: Math.random() * w,
         y: Math.random() * h,
-        r: Math.random() * 0.9 + 0.25,
-        a: 0.15 + Math.random() * 0.45,
+        r: micro ? Math.random() * 0.45 + 0.12 : Math.random() * 1.1 + 0.2,
+        a: micro ? 0.08 + Math.random() * 0.28 : 0.12 + Math.random() * 0.5,
         p: Math.random() * 6.28,
       });
     }
