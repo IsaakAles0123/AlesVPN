@@ -375,6 +375,10 @@ h1 {
   font-size: 1.08rem;
   margin: 0 0 1.5rem;
 }
+.sub-tight {
+  margin: -0.4rem 0 1rem;
+  max-width: 60ch;
+}
 .pill {
   display: inline-block;
   font-size: 0.8rem;
@@ -545,6 +549,169 @@ footer .footer-email {
   margin: 0;
   font-weight: 600;
   user-select: all;
+}
+footer .footer-inn {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  user-select: all;
+}
+footer .foot-req,
+footer .foot-legal {
+  margin: 0.35rem 0 0;
+  max-width: 42rem;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 0.82rem;
+  user-select: text;
+}
+footer .foot-links {
+  margin: 0.75rem 0 0.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  justify-content: center;
+  align-items: center;
+}
+.product-offer {
+  max-width: 32rem;
+  margin: 0 0 2.2rem;
+  padding: 1.25rem 1.35rem;
+  border-radius: 18px;
+  background: var(--glass);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
+}
+.product-offer::before {
+  content: "";
+  position: absolute;
+  top: -25%;
+  right: -15%;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--cyan) 25%, transparent) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+.product-offer h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+.product-offer .price {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0.4rem 0 0.6rem;
+  letter-spacing: 0.02em;
+}
+.product-offer .price-tiers-title {
+  margin: 0.8rem 0 0.35rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.product-offer .price-tiers {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.product-offer .price-tiers li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.product-offer .price-tiers li:last-of-type {
+  border-bottom: none;
+}
+.product-offer .price-tiers strong {
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.product-offer p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.94rem;
+  line-height: 1.55;
+}
+.product-offer p + p {
+  margin-top: 0.6rem;
+}
+.delivery-block {
+  margin: 0 0 2.2rem;
+  max-width: 55ch;
+  line-height: 1.6;
+  font-size: 0.95rem;
+  color: var(--muted);
+  padding: 1rem 1.1rem;
+  border-radius: 14px;
+  background: var(--glass);
+  border: 1px solid var(--line);
+}
+.delivery-block strong {
+  color: var(--text);
+}
+.oferta-article {
+  max-width: 60ch;
+  margin: 0 auto 2rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+.oferta-article h1 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0 0 0.5rem;
+}
+.oferta-article h2 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 1.5rem 0 0.5rem;
+}
+.oferta-article p {
+  margin: 0 0 0.75rem;
+}
+.oferta-article ol,
+.oferta-article ul {
+  margin: 0 0 0.75rem;
+  padding-left: 1.2rem;
+}
+.oferta-article li {
+  margin-bottom: 0.35rem;
+}
+.oferta-meta {
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin: 0 0 1.5rem;
+}
+.oferta-back {
+  display: inline-block;
+  margin: 0 0 1.5rem;
+  color: var(--cyan);
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.oferta-back:hover {
+  text-decoration: underline;
 }
 @media (prefers-reduced-motion: reduce) {
   .glow-tr,

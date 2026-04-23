@@ -53,7 +53,10 @@ class Settings:
 def load_settings() -> Settings:
     token = (os.getenv("BOT_TOKEN") or "").strip()
     if not token:
-        raise RuntimeError("Задайте BOT_TOKEN в .env (см. .env.example)")
+        if _truthy(os.getenv("PAY_API_MODE")):
+            token = "__PAY_API_NO_BOT__"
+        else:
+            raise RuntimeError("Задайте BOT_TOKEN в .env (см. .env.example)")
 
     price = int(os.getenv("PRICE_STARS") or "50")
     if price < 1:
