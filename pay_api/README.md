@@ -40,32 +40,18 @@ python3 -m uvicorn pay_api.main:app --host 127.0.0.1 --port 8008
 
 При необходимости настройте проверку IP-адресов ЮKassa по [документации](https://yookassa.ru/developers/using-api/webhooks).
 
-## Systemd (пример)
+## Systemd
 
-`WorkingDirectory` — корень клона `MyVPN` на сервере; `EnvironmentFile` — ваш `.env`.
+Готовый unit: [`deploy/alesvpn-pay.service`](deploy/alesvpn-pay.service) (по умолчанию **`User=root`**, тот же SQLite, что бот, без плясок с правами; при **`www-data`** дайте запись на каталог/файл `DB_PATH`).
 
-```ini
-[Unit]
-Description=AlesVPN YooKassa
-After=network.target
-
-[Service]
-Type=simple
-User=www-data
-Group=www-data
-WorkingDirectory=/var/www/alesvpn-app
-EnvironmentFile=-/opt/alesvpn-telegram/.env
-Environment=PYTHONPATH=/var/www/alesvpn-app/bots/telegram
-Environment=PAY_API_MODE=1
-ExecStart=/var/www/alesvpn-app/venv/bin/python -m uvicorn pay_api.main:app --host 127.0.0.1 --port 8008
-Restart=on-failure
-RestartSec=3
-
-[Install]
-WantedBy=multi-user.target
+```bash
+sudo cp pay_api/deploy/alesvpn-pay.service /etc/systemd/system/alesvpn-pay.service
+# при необходимости поправьте пути в файле, затем:
+sudo systemctl daemon-reload
+sudo systemctl enable --now alesvpn-pay
 ```
 
-(Поправьте пути: `WorkingDirectory` — **корень** клона, где лежат `pay_api/` и `bots/`.)
+`WorkingDirectory` — **корень** проекта, где рядом лежат `pay_api/` и `bots/`; `EnvironmentFile` — путь к `.env` бота (или общий).
 
 ## База
 

@@ -1,0 +1,25 @@
+# Скопируйте: sudo cp pay_api/deploy/alesvpn-pay.service /etc/systemd/system/alesvpn-pay.service
+# Затем: sudo systemctl daemon-reload && sudo systemctl enable --now alesvpn-pay
+#
+# User=root — тот же класс сценариев, что бот + SQLite + WireGuard; не нужен chown на БД.
+# Если поставить www-data, каталог/файл DB_PATH должен быть доступен на запись (см. README).
+
+[Unit]
+Description=AlesVPN YooKassa pay API (uvicorn)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/var/www/alesvpn-app
+EnvironmentFile=-/var/www/alesvpn-app/bots/telegram/.env
+Environment=PYTHONPATH=/var/www/alesvpn-app/bots/telegram
+Environment=PAY_API_MODE=1
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/var/www/alesvpn-app/venv/bin/python -m uvicorn pay_api.main:app --host 127.0.0.1 --port 8008
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
