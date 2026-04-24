@@ -30,12 +30,10 @@
     <string name="wg_vendor_allowed_ips" translatable="false">0.0.0.0/0, ::/0</string>
     <string name="wg_vendor_persistent_keepalive" translatable="false">25</string>
 
-    <string name="dashboard_get_plus_sub">Оплата на сайте</string>
     <string name="dashboard_no_key_hint">Укажите ключ доступа (шестерёнка сверху).</string>
     <string name="dashboard_status_off">Отключено</string>
     <string name="dashboard_status_on">Подключено</string>
     <string name="dashboard_status_connecting">Подключение…</string>
     <string name="dashboard_vpn_address">IP в сети VPN: %1$s</string>
-    <string name="dashboard_check_ip">Проверить внешний IP</string>
     <string name="dashboard_timer_idle">—</string>
 </resources>

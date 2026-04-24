@@ -64,7 +64,6 @@ fun HomeScreen(
                 },
                 isWgConfigured = isConfigured,
                 userVpnAddress = userVpnAddr.ifBlank { null },
-                onCheckExternalIp = { openExternalIpCheck(ctx) },
                 onPowerClick = {
                     when (viewModel.tunnelState) {
                         Tunnel.State.DOWN -> onConnectClick()
@@ -100,13 +99,5 @@ private fun openPurchaseUrl(ctx: Context) {
         ctx.startActivity(intent)
     } catch (_: Exception) {
         Toast.makeText(ctx, R.string.ales_purchase_url_open_error, Toast.LENGTH_LONG).show()
-    }
-}
-
-private fun openExternalIpCheck(ctx: Context) {
-    runCatching {
-        ctx.startActivity(
-            Intent(Intent.ACTION_VIEW, Uri.parse("https://api.ipify.org")),
-        )
     }
 }

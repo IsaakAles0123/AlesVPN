@@ -76,38 +76,30 @@ fun RefTopBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(NeonPurpleDim.copy(alpha = 0.9f), Color(0xFF3D2560)),
-                        ),
-                    )
-                    .clickable(onClick = onPlusClick)
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.WorkspacePremium,
-                    contentDescription = null,
-                    tint = Color(0xFFFFE08A),
-                    modifier = Modifier.size(18.dp),
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(24.dp))
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(NeonPurpleDim.copy(alpha = 0.9f), Color(0xFF3D2560)),
+                    ),
                 )
-                Text(
-                    text = "Get Plus",
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
-                )
-            }
+                .clickable(onClick = onPlusClick)
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.WorkspacePremium,
+                contentDescription = null,
+                tint = Color(0xFFFFE08A),
+                modifier = Modifier.size(18.dp),
+            )
             Text(
-                text = stringResource(R.string.dashboard_get_plus_sub),
-                style = MaterialTheme.typography.labelSmall,
-                color = TextMuted,
-                modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                text = "Get Plus",
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
             )
         }
         IconButton(onClick = onKeySetupClick) {
@@ -124,7 +116,6 @@ fun RefTopBar(
 fun ConnectionStatusBlock(
     tunnelState: Tunnel.State,
     userVpnAddress: String?,
-    onCheckExternalIp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val addr = userVpnAddress?.trim()?.takeIf { it.isNotEmpty() }
@@ -156,16 +147,6 @@ fun ConnectionStatusBlock(
                 color = TextMuted,
             )
         }
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = stringResource(R.string.dashboard_check_ip),
-            color = NeonCyan.copy(alpha = 0.9f),
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .clickable(onClick = onCheckExternalIp)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-        )
     }
 }
 
@@ -355,7 +336,6 @@ fun VpnRefDashboard(
     onPowerClick: () -> Unit,
     isWgConfigured: Boolean,
     userVpnAddress: String?,
-    onCheckExternalIp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val selected = servers.getOrElse(selectedIndex) { servers.first() }
@@ -390,7 +370,6 @@ fun VpnRefDashboard(
             ConnectionStatusBlock(
                 tunnelState = tunnelState,
                 userVpnAddress = userVpnAddress,
-                onCheckExternalIp = onCheckExternalIp,
             )
             DotMatrixSessionTimer(
                 tunnelState = tunnelState,
