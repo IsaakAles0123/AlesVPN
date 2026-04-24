@@ -34,6 +34,9 @@ fun NeonBackground(content: @Composable BoxScope.() -> Unit) {
             ),
     ) {
         AmbientStarFieldBackdrop(modifier = Modifier.fillMaxSize())
+        DriftingDustMotes(modifier = Modifier.fillMaxSize())
+        ScreenVignetteOverlay(modifier = Modifier.fillMaxSize())
+        NebulaBottomGlowOverlay(modifier = Modifier.fillMaxSize())
         WireframeGlobeBackdrop(
             modifier = Modifier
                 .align(Alignment.BottomCenter)

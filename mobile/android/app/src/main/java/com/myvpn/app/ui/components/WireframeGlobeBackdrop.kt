@@ -144,6 +144,62 @@ fun WireframeGlobeBackdrop(
                 )
             }
 
+            // Тонкая сетка меридиан / параллели (чуть выше «пыль»).
+            val gridColor = Color(0xFFC8C0E8).copy(alpha = 0.065f)
+            val sw = 0.35f.dp.toPx()
+            for (lonM in 0 until 360 step 24) {
+                val pathM = Path()
+                var needMoveM = true
+                var hasSegmentM = false
+                var laM = -78f
+                while (laM <= 78f) {
+                    val p = project(laM, lonM.toFloat())
+                    if (p != null) {
+                        if (needMoveM) {
+                            pathM.moveTo(p.x, p.y)
+                            needMoveM = false
+                            hasSegmentM = true
+                        } else {
+                            pathM.lineTo(p.x, p.y)
+                        }
+                    } else {
+                        needMoveM = true
+                    }
+                    laM += 2.4f
+                }
+                if (hasSegmentM) {
+                    drawPath(pathM, gridColor, style = Stroke(width = sw))
+                }
+            }
+            for (latM in -60..60 step 20) {
+                val pathP = Path()
+                var needMoveP = true
+                var hasSegP = false
+                var loM = -180f
+                while (loM <= 180f) {
+                    val p = project(latM.toFloat(), loM)
+                    if (p != null) {
+                        if (needMoveP) {
+                            pathP.moveTo(p.x, p.y)
+                            needMoveP = false
+                            hasSegP = true
+                        } else {
+                            pathP.lineTo(p.x, p.y)
+                        }
+                    } else {
+                        needMoveP = true
+                    }
+                    loM += 3.5f
+                }
+                if (hasSegP) {
+                    drawPath(
+                        pathP,
+                        gridColor.copy(alpha = 0.05f),
+                        style = Stroke(width = sw * 0.85f),
+                    )
+                }
+            }
+
             // Экватор не рисуем — многослойные белые штрихи воспринимались как полоса через UI
         }
 
