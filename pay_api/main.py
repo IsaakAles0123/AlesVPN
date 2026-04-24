@@ -38,6 +38,7 @@ from ales_bot.db import allocate_next_octet_async, init_db, init_db_async
 from ales_bot.wg_provision import WgProvisionError, provision_after_payment
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from fastapi.staticfiles import StaticFiles
 from yookassa import Configuration, Payment
 
 from yk_store import (
@@ -147,6 +148,12 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan, title="AlesVPN pay")
+
+
+@app.get("/", include_in_schema=False)
+async def root() -> RedirectResponse:
+    """Сайт-лендинг в nginx на /; pay_api локально смотрят /pay/ — с корня редиректим."""
+    return RedirectResponse(url="/pay/", status_code=302)
 
 
 def _q_pid(request: Request) -> str | None:
@@ -532,3 +539,13 @@ async def pay_hook(request: Request) -> Any:
     except Exception as e:  # pragma: no cover
         log.exception("webhook: %s", e)
     return JSONResponse({"ok": True})
+
+
+# Локально (Docker / Uvicorn): тот же /assets, что в nginx на проде (web/assets).
+_web_assets = _PA.parent / "web" / "assets"
+if _web_assets.is_dir():
+    app.mount(
+        "/assets",
+        StaticFiles(directory=str(_web_assets)),
+        name="assets",
+    )
