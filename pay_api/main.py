@@ -35,15 +35,19 @@ import asyncio
 from ales_bot.config import load_settings
 from ales_bot.db import allocate_next_octet_async, init_db, init_db_async
 from ales_bot.wg_provision import WgProvisionError, provision_after_payment
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from yookassa import Configuration, Payment
 
 from yk_store import (
+    email_looks_valid,
+    first_rub_taken_for_email,
     get_by_token,
     get_by_yk_id,
     init_yk,
     insert_order,
+    mark_first_rub_redeemed,
+    normalize_email,
     set_first_view,
     set_provision_error,
     set_provision_ok,
@@ -65,6 +69,39 @@ SECRET = (os.getenv("YOOKASSA_SECRET_KEY") or "").strip()
 
 # сериализация выдачи, чтобы не двоить октет
 _provision_lock = asyncio.Lock()
+
+
+def _first_rub_bypass_emails() -> set[str]:
+    """
+    E-mail, для которых акция «1 ₽» не учитывается (можно снова оформить 1 ₽).
+    Базовый список + PAY_FIRST_RUB_BYPASS_EMAILS (через запятую).
+    """
+    out = {normalize_email("isaakales26@mail.ru")}
+    extra = (os.getenv("PAY_FIRST_RUB_BYPASS_EMAILS") or "").strip()
+    for part in extra.split(","):
+        t = part.strip()
+        if t:
+            out.add(normalize_email(t))
+    return out
+
+
+def _is_bypass_first_rub_email(norm: str) -> bool:
+    return bool(norm) and norm in _first_rub_bypass_emails()
+
+
+def _maybe_redeem_first_rub_sync(db_path: Path, yk_id: str) -> None:
+    """
+    После payment.succeeded: «1 ₽ на e-mail» отмечаем в БД навсегда (кроме bypass).
+    """
+    row = get_by_yk_id(db_path, yk_id)
+    if not row or row.plan_code != "first":
+        return
+    em = normalize_email(row.customer_email or "")
+    if not em or not email_looks_valid(em):
+        return
+    if _is_bypass_first_rub_email(em):
+        return
+    mark_first_rub_redeemed(db_path, em, yk_id)
 
 
 def _html(title: str, body: str) -> str:
@@ -200,8 +237,10 @@ async def _html_after_paid(yk_id: str) -> RedirectResponse | HTMLResponse:
             )
         )
 
+    s = load_settings()
+    await asyncio.to_thread(_maybe_redeem_first_rub_sync, s.db_path, yk_id)
     err = await _do_provision(yk_id)
-    row2 = get_by_yk_id(load_settings().db_path, yk_id)
+    row2 = get_by_yk_id(s.db_path, yk_id)
     if row2 and row2.paste_two_lines and row2.conf_text:
         return _redir_to_key(row2)
     if err:
@@ -278,42 +317,77 @@ async def pay_done(t: str | None = None) -> Any:
 
 
 @app.get("/pay/buy", response_class=HTMLResponse)
-async def pay_buy(plan: str = "monthly") -> Any:
+async def pay_buy(
+    plan: str = "monthly",
+    email: str | None = Query(None, description="E-mail для учёта «1 ₽ — первый месяц»"),
+) -> Any:
     if not (SHOP_ID and SECRET):
         return HTMLResponse(
             _html("Касса", f"<h1>Касса</h1><p>Задайте YOOKASSA_* в .env</p>"),
             503,
         )
+    s = load_settings()
+    p = s.db_path
     pl = (plan or "monthly").lower().strip()
     if pl not in PLANS:
         return HTMLResponse(
             _html("Тариф", "<h1>Нет такого плана</h1>"),
             400,
         )
+    customer_email: str | None = None
+    if pl == "first":
+        en = normalize_email(email or "")
+        if not email_looks_valid(en):
+            return HTMLResponse(
+                _html(
+                    "E-mail",
+                    f"<h1>Первый месяц за 1&nbsp;₽</h1>"
+                    f"<p class='sub'>Укажите корректный e-mail на <a href='{BASE_URL}/pay/'>странице оплаты</a> — "
+                    f"по нему отмечаем, что акция «1&nbsp;₽» ещё не использовалась.</p>"
+                    f"<p class='sub'><a href='{BASE_URL}/pay/'>← к тарифам</a></p>",
+                ),
+                400,
+            )
+        if not _is_bypass_first_rub_email(
+            en
+        ) and first_rub_taken_for_email(p, en):
+            return HTMLResponse(
+                _html(
+                    "Акция",
+                    f"<h1>Акция 1&nbsp;₽ уже использована</h1>"
+                    f"<p class='sub'>Для <code>{escape(en)}</code> первый месяц за 1&nbsp;₽ уже оформляли. "
+                    f"Продлите за 99&nbsp;₽.</p>"
+                    f"<p><a class='btn btn-main' href='{BASE_URL}/pay/buy?plan=monthly'>"
+                    f"99&nbsp;₽ — месяц</a></p>"
+                    f"<p class='sub'><a href='{BASE_URL}/pay/'>все тарифы</a></p>",
+                ),
+                403,
+            )
+        customer_email = en
     amount, desc = PLANS[pl]
     r_url = f"{BASE_URL}/pay/return"
     idem = str(uuid.uuid4())
-    s = load_settings()
-    p = s.db_path
     return_token = secrets.token_urlsafe(32)
+    meta: dict[str, str] = {
+        "plan": pl,
+        "ret": return_token,
+    }
+    if pl == "first" and customer_email:
+        meta["email"] = customer_email
     try:
         y_p = await asyncio.to_thread(
-            lambda: Payment.create(
-                {
-                    "amount": {"value": amount, "currency": "RUB"},
-                    "capture": True,
-                    "description": desc[:128],
-                    "metadata": {
-                        "plan": pl,
-                        "ret": return_token,
-                    },
-                    "confirmation": {
-                        "type": "redirect",
-                        "return_url": r_url,
-                    },
+            Payment.create,
+            {
+                "amount": {"value": amount, "currency": "RUB"},
+                "capture": True,
+                "description": desc[:128],
+                "metadata": meta,
+                "confirmation": {
+                    "type": "redirect",
+                    "return_url": r_url,
                 },
-                idem,
-            )
+            },
+            idem,
         )
     except Exception as e:
         log.exception("YooKassa create")
@@ -338,6 +412,7 @@ async def pay_buy(plan: str = "monthly") -> Any:
             amount_value=amount,
             return_token=return_token,
             status="created",
+            customer_email=customer_email,
         )
     except RuntimeError as e:
         log.error("order insert: %s", e)
@@ -370,7 +445,13 @@ def _pay_index_body() -> str:
     return f"""
 <h1>Оплата AlesVPN</h1>
 <p class="sub">Оплата в ЮKassa, затем — страница с ключом.</p>
-<p><a class="btn btn-main" href="{b}/pay/buy?plan=first">1&nbsp;₽ — первый месяц</a></p>
+<p class="sub">Первый месяц за 1&nbsp;₽ — один раз на e-mail. Укажите тот же адрес, что в чеке, если касса попросит.</p>
+<form class="sub" method="get" action="{b}/pay/buy" style="max-width:22rem;margin:1rem 0">
+  <input type="hidden" name="plan" value="first" />
+  <label for="pemail">E-mail</label>
+  <input type="email" name="email" id="pemail" required placeholder="name@mail.ru" autocomplete="email" style="width:100%;margin:0.4rem 0" />
+  <p><button type="submit" class="btn btn-main" style="width:100%;border:none;cursor:pointer">1&nbsp;₽ — первый месяц</button></p>
+</form>
 <p><a class="btn btn-main" href="{b}/pay/buy?plan=monthly">99&nbsp;₽ — месяц</a></p>
 <p><a class="btn btn-main" href="{b}/pay/buy?plan=m6">499&nbsp;₽ — 6 месяцев</a></p>
 <p><a class="btn btn-main" href="{b}/pay/buy?plan=m12">999&nbsp;₽ — 12 месяцев</a></p>
@@ -404,6 +485,10 @@ async def pay_hook(request: Request) -> Any:
         if ev == "payment.succeeded" and isinstance(
             pid, str
         ) and len(pid) > 4:
+            s = load_settings()
+            await asyncio.to_thread(
+                _maybe_redeem_first_rub_sync, s.db_path, pid
+            )
             err = await _do_provision(pid)
             if err:
                 log.warning("hook provision: %s", err[:200])

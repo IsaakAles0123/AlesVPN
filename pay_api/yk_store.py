@@ -2,9 +2,25 @@
 
 from __future__ import annotations
 
+import re
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
+
+_EMAIL_RE = re.compile(
+    r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$",
+)
+
+
+def normalize_email(s: str) -> str:
+    return (s or "").strip().lower()
+
+
+def email_looks_valid(s: str) -> bool:
+    t = normalize_email(s)
+    if len(t) < 5 or len(t) > 254:
+        return False
+    return bool(_EMAIL_RE.match(t))
 
 
 @dataclass(frozen=True)
@@ -18,6 +34,7 @@ class YkOrderRow:
     conf_text: str | None
     provision_error: str | None
     first_view_at: str | None
+    customer_email: str | None
 
 
 def _connect(path: Path) -> sqlite3.Connection:
@@ -54,6 +71,20 @@ def init_yk(db_path: Path) -> None:
                 conn.execute("ALTER TABLE yookassa_web ADD COLUMN first_view_at TEXT")
             except sqlite3.OperationalError:
                 pass
+        if "customer_email" not in have:
+            try:
+                conn.execute("ALTER TABLE yookassa_web ADD COLUMN customer_email TEXT")
+            except sqlite3.OperationalError:
+                pass
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS pay_first_rub_redeemed (
+                email_norm TEXT PRIMARY KEY,
+                yk_id TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """
+        )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_yk_token ON yookassa_web (return_token)")
     finally:
         conn.close()
@@ -67,6 +98,7 @@ def insert_order(
     amount_value: str,
     return_token: str,
     status: str = "created",
+    customer_email: str | None = None,
 ) -> None:
     conn = _connect(path)
     try:
@@ -74,10 +106,10 @@ def insert_order(
         conn.execute(
             """
             INSERT INTO yookassa_web
-            (yk_id, plan_code, amount_value, return_token, status)
-            VALUES (?, ?, ?, ?, ?)
+            (yk_id, plan_code, amount_value, return_token, status, customer_email)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (yk_id, plan_code, amount_value, return_token, status),
+            (yk_id, plan_code, amount_value, return_token, status, customer_email),
         )
         conn.commit()
     except sqlite3.IntegrityError as e:
@@ -92,7 +124,8 @@ def get_by_yk_id(path: Path, yk_id: str) -> YkOrderRow | None:
         row = conn.execute(
             """
             SELECT yk_id, plan_code, amount_value, return_token, status,
-                   paste_two_lines, conf_text, provision_error, first_view_at
+                   paste_two_lines, conf_text, provision_error, first_view_at,
+                   customer_email
             FROM yookassa_web
             WHERE yk_id = ?
             """,
@@ -111,7 +144,8 @@ def get_by_token(path: Path, token: str) -> YkOrderRow | None:
         row = conn.execute(
             """
             SELECT yk_id, plan_code, amount_value, return_token, status,
-                   paste_two_lines, conf_text, provision_error, first_view_at
+                   paste_two_lines, conf_text, provision_error, first_view_at,
+                   customer_email
             FROM yookassa_web
             WHERE return_token = ?
             """,
@@ -120,6 +154,42 @@ def get_by_token(path: Path, token: str) -> YkOrderRow | None:
         if not row:
             return None
         return YkOrderRow(*row)
+    finally:
+        conn.close()
+
+
+def first_rub_taken_for_email(path: Path, email_norm: str) -> bool:
+    if not email_norm:
+        return False
+    conn = _connect(path)
+    try:
+        r = conn.execute(
+            "SELECT 1 FROM pay_first_rub_redeemed WHERE email_norm = ? LIMIT 1",
+            (email_norm,),
+        ).fetchone()
+        return r is not None
+    finally:
+        conn.close()
+
+
+def mark_first_rub_redeemed(
+    path: Path,
+    email_norm: str,
+    yk_id: str,
+) -> None:
+    if not email_norm or not yk_id:
+        return
+    conn = _connect(path)
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO pay_first_rub_redeemed (email_norm, yk_id)
+            VALUES (?, ?)
+            """,
+            (email_norm, yk_id),
+        )
+        conn.commit()
     finally:
         conn.close()
 
