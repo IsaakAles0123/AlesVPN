@@ -1,0 +1,14 @@
+.git
+**/.gradle
+**/build
+**/app/build
+**/.idea
+**/*.iml
+**/__pycache__
+**/.pytest_cache
+**/.venv
+**/node_modules
+**/.DS_Store
+Thumbs.db
+mobile/android/.gradle
+mobile/android/**/intermediates

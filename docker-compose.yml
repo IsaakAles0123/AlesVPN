@@ -1,0 +1,31 @@
+# AlesVPN: оплата (pay_api) в контейнере. Запуск из корня репозитория:
+#   copy .env из бота (рядом с pay_api) — см. pay_api/README.md
+#   docker compose up --build
+# localhost: http://127.0.0.1:8008
+#
+# Android / iOS — не в Docker: на Mac открываешь папку в Android Studio / Xcode.
+# Перенос проекта между ПК: git push / git clone, а не "образ Docker с кодом".
+
+services:
+  pay_api:
+    build:
+      context: .
+      dockerfile: docker/pay_api.Dockerfile
+    ports:
+      - "8008:8008"
+    env_file:
+      - .env
+    environment:
+      PAY_API_MODE: "1"
+    working_dir: /app
+    volumes:
+      - .:/app
+    command:
+      - python
+      - -m
+      - uvicorn
+      - pay_api.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8008"
