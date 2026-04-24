@@ -40,6 +40,8 @@ python3 -m uvicorn pay_api.main:app --host 127.0.0.1 --port 8008
 
 Проверка: `https://alesvpn.ru/pay/` — список кнопок-тарифов.
 
+Редирект после оплаты: в `return_url` передаётся `?ret=<return_token>`. Касса не гарантирует `paymentId` в query; по `ret` заказ всё равно находится в `yookassa_web`.
+
 ## Webhook (рекомендуется)
 
 В личном кабинете ЮKassa укажите URL: `https://alesvpn.ru/pay/hook` (POST).  

@@ -20,6 +20,7 @@ from contextlib import asynccontextmanager
 from html import escape
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlencode
 
 # Каталог pay_api (для import yk_store при запуске: uvicorn pay_api.main:app)
 _PA = Path(__file__).resolve().parent
@@ -260,6 +261,13 @@ async def _html_after_paid(yk_id: str) -> RedirectResponse | HTMLResponse:
 async def pay_return(request: Request) -> Any:
     pid = _q_pid(request)
     if not pid:
+        ret = (request.query_params.get("ret") or "").strip()
+        if len(ret) >= 8:
+            s = load_settings()
+            row = await asyncio.to_thread(get_by_token, s.db_path, ret)
+            if row:
+                pid = row.yk_id
+    if not pid:
         return HTMLResponse(
             _html(
                 "Платёж",
@@ -365,9 +373,10 @@ async def pay_buy(
             )
         customer_email = en
     amount, desc = PLANS[pl]
-    r_url = f"{BASE_URL}/pay/return"
     idem = str(uuid.uuid4())
     return_token = secrets.token_urlsafe(32)
+    # ЮKassa не всегда дописывает paymentId к return; свой ret = return_token — однозначный поиск в БД.
+    r_url = f"{BASE_URL}/pay/return?{urlencode({'ret': return_token})}"
     meta: dict[str, str] = {
         "plan": pl,
         "ret": return_token,
