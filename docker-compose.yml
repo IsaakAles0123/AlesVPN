@@ -1,5 +1,6 @@
 # AlesVPN: оплата (pay_api) в контейнере. Запуск из корня репозитория:
-#   copy .env из бота (рядом с pay_api) — см. pay_api/README.md
+#   для кассы: положи .env (как у бота) в корень MyVPN — см. pay_api/README.md
+#   без .env compose всё равно стартует; переменные ЮKassa/БД тогда задай вручную
 #   docker compose up --build
 # localhost: http://127.0.0.1:8008
 #
@@ -14,7 +15,8 @@ services:
     ports:
       - "8008:8008"
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       PAY_API_MODE: "1"
     working_dir: /app
