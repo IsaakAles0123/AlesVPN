@@ -12,38 +12,76 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
- * Медленный дрейф «космической пыли» (несколько пикселей), поверх звёзд, под виньетом.
+ * Несколько крошечных «светлячков»: мягкое свечение, медленный дрейф, быстрое мерцание.
  */
 @Composable
 fun DriftingDustMotes(modifier: Modifier = Modifier) {
-    val t = rememberInfiniteTransition(label = "driftDust")
-    val phase by t.animateFloat(
+    val inf = rememberInfiniteTransition(label = "fireflies")
+    val drift by inf.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(240_000, easing = LinearEasing),
+            animation = tween(220_000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
         ),
-        label = "ph",
+        label = "dr",
+    )
+    val tw by inf.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(5_200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "tw",
     )
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
         if (w < 1f || h < 1f) return@Canvas
-        val n = 40
-        val driftY = (phase * h).rem(h).let { if (it < 0f) it + h else it }
+
+        val n = 14
+        val pi2 = 2.0 * kotlin.math.PI
         for (i in 0 until n) {
-            val x = (i * 37.3f).rem(w).let { if (it < 0f) it + w else it }
-            val baseY = (i * 59.1f).rem(h).let { if (it < 0f) it + h else it }
-            var y = (baseY + driftY).rem(h).let { if (it < 0f) it + h else it }
-            val a = 0.06f + (i % 5) * 0.03f
-            val r = 0.4f + (i % 4) * 0.28f
+            // Мерцание: своя фаза + общий «тик» tw — разные ритмы
+            val pulse = 0.32f + 0.68f * (0.5f * (1f + sin(
+                pi2 * (tw * 1.9 + i * 0.11) + i * 0.6,
+            ).toFloat()))
+            // Медленные разнесённые дуги, чтобы не в одном круге
+            val ax = drift * pi2 * 0.18 + i * 0.55
+            val ay = drift * pi2 * 0.14 + i * 0.33
+            val x = (w * 0.5f + w * 0.4f * sin(ax).toFloat() * (0.55f + (i % 3) * 0.1f))
+                .coerceIn(8f, w - 8f)
+            val y = (h * 0.45f + h * 0.35f * cos(ay).toFloat() * (0.5f + (i % 4) * 0.08f))
+                .coerceIn(8f, h - 8f)
+            val c = Offset(x, y)
+
+            val a = pulse.coerceIn(0.2f, 1f)
+            // Внешнее слабое свечение
             drawCircle(
-                color = Color(0xFFE0DCFF).copy(alpha = a.coerceIn(0.04f, 0.22f)),
-                radius = r,
-                center = Offset(x, y),
+                color = Color(0xFFB8E8FF).copy(alpha = 0.08f * a),
+                radius = 5.8f,
+                center = c,
+            )
+            drawCircle(
+                color = Color(0xFFDCF6FF).copy(alpha = 0.18f * a),
+                radius = 2.6f,
+                center = c,
+            )
+            // Тёплое яркое ядрышко
+            drawCircle(
+                color = Color(0xFFFFF4E0).copy(alpha = 0.5f * a + 0.1f),
+                radius = 1.15f,
+                center = c,
+            )
+            drawCircle(
+                color = Color.White.copy(alpha = 0.7f * a + 0.1f),
+                radius = 0.55f,
+                center = c,
             )
         }
     }
