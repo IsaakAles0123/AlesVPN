@@ -40,8 +40,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.myvpn.app.R
 import com.myvpn.app.ui.theme.AlesSpacing
 import com.myvpn.app.ui.theme.NeonCyan
 import com.myvpn.app.ui.theme.NeonPurple
@@ -74,30 +76,38 @@ fun RefTopBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(24.dp))
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(NeonPurpleDim.copy(alpha = 0.9f), Color(0xFF3D2560)),
-                    ),
+        Column {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(NeonPurpleDim.copy(alpha = 0.9f), Color(0xFF3D2560)),
+                        ),
+                    )
+                    .clickable(onClick = onPlusClick)
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.WorkspacePremium,
+                    contentDescription = null,
+                    tint = Color(0xFFFFE08A),
+                    modifier = Modifier.size(18.dp),
                 )
-                .clickable(onClick = onPlusClick)
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.WorkspacePremium,
-                contentDescription = null,
-                tint = Color(0xFFFFE08A),
-                modifier = Modifier.size(18.dp),
-            )
+                Text(
+                    text = "Get Plus",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                )
+            }
             Text(
-                text = "Get Plus",
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
+                text = stringResource(R.string.dashboard_get_plus_sub),
+                style = MaterialTheme.typography.labelSmall,
+                color = TextMuted,
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp),
             )
         }
         IconButton(onClick = onKeySetupClick) {
@@ -107,6 +117,55 @@ fun RefTopBar(
                 tint = NeonCyan,
             )
         }
+    }
+}
+
+@Composable
+fun ConnectionStatusBlock(
+    tunnelState: Tunnel.State,
+    userVpnAddress: String?,
+    onCheckExternalIp: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val addr = userVpnAddress?.trim()?.takeIf { it.isNotEmpty() }
+    val status = when (tunnelState) {
+        Tunnel.State.TOGGLE -> stringResource(R.string.dashboard_status_connecting)
+        Tunnel.State.UP -> stringResource(R.string.dashboard_status_on)
+        Tunnel.State.DOWN -> stringResource(R.string.dashboard_status_off)
+    }
+    val addressLine: String? =
+        if (tunnelState == Tunnel.State.UP && addr != null) {
+            stringResource(R.string.dashboard_vpn_address, addr)
+        } else {
+            null
+        }
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = status,
+            style = MaterialTheme.typography.titleSmall,
+            color = Color.White,
+        )
+        if (addressLine != null) {
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = addressLine,
+                style = MaterialTheme.typography.bodySmall,
+                color = TextMuted,
+            )
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = stringResource(R.string.dashboard_check_ip),
+            color = NeonCyan.copy(alpha = 0.9f),
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(onClick = onCheckExternalIp)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+        )
     }
 }
 
@@ -210,7 +269,17 @@ fun ServerCarousel(
     modifier: Modifier = Modifier,
 ) {
     LazyRow(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        Color(0xFF050508).copy(alpha = 0.55f),
+                    ),
+                ),
+            )
+            .padding(top = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 0.dp, bottom = 4.dp),
     ) {
@@ -219,10 +288,17 @@ fun ServerCarousel(
             Card(
                 modifier = Modifier
                     .width(148.dp)
+                    .then(
+                        if (selected) {
+                            Modifier
+                        } else {
+                            Modifier.border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(20.dp))
+                        },
+                    )
                     .clickable { onSelect(index) },
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (selected) NeonPurple.copy(alpha = 0.95f) else Color(0xFF1A1B24),
+                    containerColor = if (selected) NeonPurple.copy(alpha = 0.95f) else Color(0xFF14151C),
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 8.dp else 2.dp),
             ) {
@@ -277,9 +353,13 @@ fun VpnRefDashboard(
     onKeySetupClick: () -> Unit,
     onPlusClick: () -> Unit,
     onPowerClick: () -> Unit,
+    isWgConfigured: Boolean,
+    userVpnAddress: String?,
+    onCheckExternalIp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val selected = servers.getOrElse(selectedIndex) { servers.first() }
+    val timerIdle = stringResource(R.string.dashboard_timer_idle)
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -298,8 +378,25 @@ fun VpnRefDashboard(
                 onPlusClick = onPlusClick,
                 onKeySetupClick = onKeySetupClick,
             )
+            if (!isWgConfigured) {
+                Text(
+                    text = stringResource(R.string.dashboard_no_key_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = NeonCyan.copy(alpha = 0.85f),
+                    textAlign = TextAlign.Center,
+                )
+            }
             ServerLocationPill(server = selected)
-            DotMatrixSessionTimer(tunnelState = tunnelState, sessionStartMs = sessionStartMs)
+            ConnectionStatusBlock(
+                tunnelState = tunnelState,
+                userVpnAddress = userVpnAddress,
+                onCheckExternalIp = onCheckExternalIp,
+            )
+            DotMatrixSessionTimer(
+                tunnelState = tunnelState,
+                sessionStartMs = sessionStartMs,
+                idleText = timerIdle,
+            )
         }
         GlobePowerCluster(
             tunnelState = tunnelState,

@@ -20,7 +20,7 @@ from contextlib import asynccontextmanager
 from html import escape
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 # Каталог pay_api (для import yk_store при запуске: uvicorn pay_api.main:app)
 _PA = Path(__file__).resolve().parent
@@ -37,7 +37,7 @@ from ales_bot.config import load_settings
 from ales_bot.db import allocate_next_octet_async, init_db, init_db_async
 from ales_bot.wg_provision import WgProvisionError, provision_after_payment
 from fastapi import FastAPI, Query, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from yookassa import Configuration, Payment
 
 from yk_store import (
@@ -305,23 +305,51 @@ async def pay_done(t: str | None = None) -> Any:
         return HTMLResponse(
             _html(
                 "Ждите",
-                f"<h1>Ключ готовится</h1><p><a href='{BASE_URL}/pay/return?paymentId={escape(row.yk_id)}'>"
+                f"<h1>Ключ готовится</h1><p><a href='{BASE_URL}/pay/return?ret={escape(row.return_token)}'>"
                 f"Статус оплаты</a></p>",
             ),
             202,
         )
     await asyncio.to_thread(set_first_view, s.db_path, t)
-    pe, ce = map(html.escape, (row.paste_two_lines, row.conf_text))
+    pe = html.escape(row.paste_two_lines)
+    t_q = quote(t, safe="")
+    dl = f"{BASE_URL}/pay/download-conf?t={t_q}"
     inner = f"""
 <h1>Ключ AlesVPN</h1>
-<p class="sub">Сохраните. Две строки — в настройки AlesVPN, ниже — конфиг в WireGuard.</p>
-<h2>Две строки</h2>
+<p class="sub">Сохраните. Для <strong>AlesVPN</strong> — две строки ниже. Для <strong>WireGuard</strong> — скачайте готовый файл, не вставляйте его в AlesVPN.</p>
+<h2>Две строки(скопируй&nbsp;их!!!)</h2>
 <pre class="security" style="text-align:left;user-select:all;white-space:pre-wrap;word-break:break-all">{pe}</pre>
-<h2>Конфиг</h2>
-<pre class="security" style="text-align:left;user-select:all;white-space:pre-wrap;word-break:break-all">{ce}</pre>
+<h2>Конфиг WireGuard</h2>
+<p><a class="btn btn-main" href="{dl}">Скачать alesvpn.conf</a> — в приложении WireGuard: «Импорт из файла» / «Create from file».</p>
 <p class="sub"><a href='{BASE_URL}/'>на главную</a></p>
 """
     return HTMLResponse(_html("Ключ", inner), headers={"Cache-Control": "no-store"})
+
+
+@app.get("/pay/download-conf")
+async def pay_download_conf(t: str | None = None) -> Any:
+    """Скачивание .conf по тому же одноразовому t, что и /pay/done (без повторного set_first_view)."""
+    if not t or len(t) < 8:
+        return HTMLResponse(
+            _html("Нет доступа", f"<h1>Нет параметра t</h1>"),
+            400,
+        )
+    s = load_settings()
+    row = await asyncio.to_thread(get_by_token, s.db_path, t)
+    if not row or not (row.conf_text or "").strip():
+        return HTMLResponse(
+            _html("Ссылка", f"<h1>Нет данных</h1>"),
+            404,
+        )
+    body = (row.conf_text or "").encode("utf-8")
+    return Response(
+        content=body,
+        media_type="text/plain; charset=utf-8",
+        headers={
+            "Content-Disposition": 'attachment; filename="alesvpn.conf"',
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 @app.get("/pay/buy", response_class=HTMLResponse)

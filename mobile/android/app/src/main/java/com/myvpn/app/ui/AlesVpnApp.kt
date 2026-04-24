@@ -24,6 +24,7 @@ fun AlesVpnApp(
     } else {
         HomeScreen(
             viewModel = viewModel,
+            wgSettingsRepository = wgSettingsRepository,
             onConnectClick = onConnectClick,
             onStopClick = onStopClick,
             onOpenKeySetup = { viewModel.openWgKeySetup() },

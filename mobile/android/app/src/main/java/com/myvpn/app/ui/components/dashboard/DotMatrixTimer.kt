@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -14,8 +15,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlin.math.max
 import kotlin.math.min
 import com.wireguard.android.backend.Tunnel
@@ -73,23 +78,40 @@ fun DotMatrixSessionTimer(
     modifier: Modifier = Modifier,
     primaryColor: Color = Color(0xFFF5F5F5),
     secondaryColor: Color = Color(0xFF6B6B75),
+    /** Когда сессии нет — вместо «00:00» (например em dash). */
+    idleText: String = "—",
 ) {
-    var tick by remember { mutableIntStateOf(0) }
     val active = tunnelState == Tunnel.State.UP && sessionStartMs != null
-    LaunchedEffect(active, sessionStartMs) {
-        if (!active) return@LaunchedEffect
+    if (!active) {
+        Text(
+            text = idleText,
+            modifier = modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            color = secondaryColor.copy(alpha = 0.9f),
+            fontSize = 40.sp,
+            lineHeight = 40.sp,
+            textAlign = TextAlign.Center,
+            style = TextStyle(
+                shadow = Shadow(
+                    color = Color(0xFF0D0D12).copy(alpha = 0.9f),
+                    offset = androidx.compose.ui.geometry.Offset(0f, 1f),
+                    blurRadius = 6f,
+                ),
+            ),
+        )
+        return
+    }
+    var tick by remember { mutableIntStateOf(0) }
+    val start = sessionStartMs!!
+    LaunchedEffect(start) {
         while (true) {
             delay(16)
             tick++
         }
     }
-
-    val (mainPart, fracPart) = remember(active, sessionStartMs, tick) {
-        if (!active) {
-            "00:00" to ".00"
-        } else {
-            buildTimeString(System.currentTimeMillis() - sessionStartMs!!)
-        }
+    val (mainPart, fracPart) = remember(tick) {
+        buildTimeString(System.currentTimeMillis() - start)
     }
 
     val density = LocalDensity.current
@@ -131,8 +153,8 @@ fun DotMatrixSessionTimer(
             var startX = (maxW - totalW) / 2f
             val startY = (maxH - ROWS * cell) / 2f
 
-            val mainColor = if (active) primaryColor else secondaryColor.copy(alpha = 0.55f)
-            val fracColor = secondaryColor.copy(alpha = if (active) 0.82f else 0.42f)
+            val mainColor = primaryColor
+            val fracColor = secondaryColor.copy(alpha = 0.82f)
 
             var x = startX
             mainPart.forEachIndexed { i, ch ->

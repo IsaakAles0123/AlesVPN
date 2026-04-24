@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.myvpn.app.MainViewModel
 import com.myvpn.app.R
+import com.myvpn.app.data.VpnSettingsRepository
 import com.myvpn.app.ui.components.NeonBackground
 import com.myvpn.app.ui.components.dashboard.VpnRefDashboard
 import com.myvpn.app.ui.components.dashboard.rememberMockServers
@@ -30,6 +31,7 @@ import com.wireguard.android.backend.Tunnel
 @Composable
 fun HomeScreen(
     viewModel: MainViewModel,
+    wgSettingsRepository: VpnSettingsRepository,
     onConnectClick: () -> Unit,
     onStopClick: () -> Unit,
     onOpenKeySetup: () -> Unit,
@@ -38,6 +40,8 @@ fun HomeScreen(
     val ctx = LocalContext.current
     val servers = rememberMockServers()
     var selectedServerIndex by remember { mutableIntStateOf(0) }
+    val isConfigured = wgSettingsRepository.isConfigured()
+    val userVpnAddr = if (isConfigured) wgSettingsRepository.loadAddress().trim() else ""
 
     NeonBackground {
         Column(
@@ -58,6 +62,9 @@ fun HomeScreen(
                 onPlusClick = {
                     openPurchaseUrl(ctx)
                 },
+                isWgConfigured = isConfigured,
+                userVpnAddress = userVpnAddr.ifBlank { null },
+                onCheckExternalIp = { openExternalIpCheck(ctx) },
                 onPowerClick = {
                     when (viewModel.tunnelState) {
                         Tunnel.State.DOWN -> onConnectClick()
@@ -93,5 +100,13 @@ private fun openPurchaseUrl(ctx: Context) {
         ctx.startActivity(intent)
     } catch (_: Exception) {
         Toast.makeText(ctx, R.string.ales_purchase_url_open_error, Toast.LENGTH_LONG).show()
+    }
+}
+
+private fun openExternalIpCheck(ctx: Context) {
+    runCatching {
+        ctx.startActivity(
+            Intent(Intent.ACTION_VIEW, Uri.parse("https://api.ipify.org")),
+        )
     }
 }
