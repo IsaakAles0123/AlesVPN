@@ -11,6 +11,7 @@ Nginx: location /pay/  proxy на этот порт, см. README.
 from __future__ import annotations
 
 import html
+import hmac
 import logging
 import os
 import secrets
@@ -42,6 +43,7 @@ from fastapi.staticfiles import StaticFiles
 from yookassa import Configuration, Payment
 
 from yk_store import (
+    consume_token_once,
     email_looks_valid,
     first_rub_taken_for_email,
     get_by_token,
@@ -50,7 +52,6 @@ from yk_store import (
     insert_order,
     mark_first_rub_redeemed,
     normalize_email,
-    set_first_view,
     set_provision_error,
     set_provision_ok,
 )
@@ -68,6 +69,7 @@ PLANS: dict[str, tuple[str, str]] = {
 BASE_URL = (os.getenv("PAY_BASE_URL") or "https://alesvpn.ru").rstrip("/")
 SHOP_ID = (os.getenv("YOOKASSA_SHOP_ID") or "").strip()
 SECRET = (os.getenv("YOOKASSA_SECRET_KEY") or "").strip()
+WEBHOOK_TOKEN = (os.getenv("PAY_WEBHOOK_TOKEN") or "").strip()
 
 # сериализация выдачи, чтобы не двоить октет
 _provision_lock = asyncio.Lock()
@@ -78,7 +80,7 @@ def _first_rub_bypass_emails() -> set[str]:
     E-mail, для которых акция «1 ₽» не учитывается (можно снова оформить 1 ₽).
     Базовый список + PAY_FIRST_RUB_BYPASS_EMAILS (через запятую).
     """
-    out = {normalize_email("isaakales26@mail.ru")}
+    out: set[str] = set()
     extra = (os.getenv("PAY_FIRST_RUB_BYPASS_EMAILS") or "").strip()
     for part in extra.split(","):
         t = part.strip()
@@ -173,6 +175,20 @@ async def _yoo_get(pid: str) -> Any:
     if not (SHOP_ID and SECRET):
         return None
     return await asyncio.to_thread(Payment.find_one, pid)
+
+
+def _yoo_amount_value(pay: Any) -> str:
+    amount = getattr(pay, "amount", None)
+    if isinstance(amount, dict):
+        return str(amount.get("value") or "").strip()
+    return str(getattr(amount, "value", "") or "").strip()
+
+
+def _yoo_currency(pay: Any) -> str:
+    amount = getattr(pay, "amount", None)
+    if isinstance(amount, dict):
+        return str(amount.get("currency") or "").strip().upper()
+    return str(getattr(amount, "currency", "") or "").strip().upper()
 
 
 async def _do_provision(yk_id: str) -> str | None:
@@ -293,11 +309,11 @@ async def pay_done(t: str | None = None) -> Any:
             400,
         )
     s = load_settings()
-    row = await asyncio.to_thread(get_by_token, s.db_path, t)
+    row = await asyncio.to_thread(consume_token_once, s.db_path, t)
     if not row:
         return HTMLResponse(
-            _html("Ссылка", f"<h1>Нет данных</h1>"),
-            404,
+            _html("Ссылка", "<h1>Ссылка недействительна или уже использована</h1>"),
+            410,
         )
     if (row.provision_error or "").strip() and not (
         row.paste_two_lines
@@ -317,17 +333,15 @@ async def pay_done(t: str | None = None) -> Any:
             ),
             202,
         )
-    await asyncio.to_thread(set_first_view, s.db_path, t)
     pe = html.escape(row.paste_two_lines)
-    t_q = quote(t, safe="")
-    dl = f"{BASE_URL}/pay/download-conf?t={t_q}"
+    conf = html.escape(row.conf_text or "")
     inner = f"""
 <h1>Ключ AlesVPN</h1>
-<p class="sub">Сохраните. Для <strong>AlesVPN</strong> — две строки ниже. Для <strong>WireGuard</strong> — скачайте готовый файл, не вставляйте его в AlesVPN.</p>
+<p class="sub">Сохраните данные. Ссылка одноразовая и больше не откроется после этой страницы.</p>
 <h2>Две строки(скопируй&nbsp;их!!!)</h2>
 <pre class="security" style="text-align:left;user-select:all;white-space:pre-wrap;word-break:break-all">{pe}</pre>
-<h2>Конфиг WireGuard</h2>
-<p><a class="btn btn-main" href="{dl}">Скачать alesvpn.conf</a> — в приложении WireGuard: «Импорт из файла» / «Create from file».</p>
+<h2>Конфиг WireGuard (.conf)</h2>
+<pre class="security" style="text-align:left;user-select:all;white-space:pre-wrap;word-break:break-all">{conf}</pre>
 <p class="sub"><a href='{BASE_URL}/'>на главную</a></p>
 """
     return HTMLResponse(_html("Ключ", inner), headers={"Cache-Control": "no-store"})
@@ -335,27 +349,10 @@ async def pay_done(t: str | None = None) -> Any:
 
 @app.get("/pay/download-conf")
 async def pay_download_conf(t: str | None = None) -> Any:
-    """Скачивание .conf по тому же одноразовому t, что и /pay/done (без повторного set_first_view)."""
-    if not t or len(t) < 8:
-        return HTMLResponse(
-            _html("Нет доступа", f"<h1>Нет параметра t</h1>"),
-            400,
-        )
-    s = load_settings()
-    row = await asyncio.to_thread(get_by_token, s.db_path, t)
-    if not row or not (row.conf_text or "").strip():
-        return HTMLResponse(
-            _html("Ссылка", f"<h1>Нет данных</h1>"),
-            404,
-        )
-    body = (row.conf_text or "").encode("utf-8")
-    return Response(
-        content=body,
-        media_type="text/plain; charset=utf-8",
-        headers={
-            "Content-Disposition": 'attachment; filename="alesvpn.conf"',
-            "Cache-Control": "no-store",
-        },
+    """Отключено: конфиг доступен только на одноразовой странице /pay/done."""
+    return HTMLResponse(
+        _html("Ссылка", "<h1>Скачивание отключено</h1><p>Используйте одноразовую страницу ключа.</p>"),
+        410,
     )
 
 
@@ -514,6 +511,12 @@ async def pay_hook(request: Request) -> Any:
     """YooKassa: payment.succeeded — догнать выдачу, если return не сработал."""
     if not (SHOP_ID and SECRET):
         return JSONResponse({"ok": False}, 503)
+    if not WEBHOOK_TOKEN:
+        log.warning("Webhook disabled: PAY_WEBHOOK_TOKEN is not set")
+        return JSONResponse({"ok": False}, 503)
+    got_token = (request.headers.get("X-Webhook-Token") or "").strip()
+    if not hmac.compare_digest(got_token, WEBHOOK_TOKEN):
+        return JSONResponse({"ok": False}, 403)
     try:
         body = await request.json()
     except Exception:
@@ -530,6 +533,22 @@ async def pay_hook(request: Request) -> Any:
             pid, str
         ) and len(pid) > 4:
             s = load_settings()
+            existing = await asyncio.to_thread(get_by_yk_id, s.db_path, pid)
+            if not existing:
+                return JSONResponse({"ok": True})
+            pay = await _yoo_get(pid)
+            if not pay or _pay_state(pay) != "succeeded":
+                return JSONResponse({"ok": True})
+            if _yoo_currency(pay) != "RUB":
+                log.warning("hook bad currency: %s", _yoo_currency(pay))
+                return JSONResponse({"ok": True})
+            if _yoo_amount_value(pay) != (existing.amount_value or "").strip():
+                log.warning(
+                    "hook amount mismatch: payment=%s expected=%s",
+                    _yoo_amount_value(pay),
+                    existing.amount_value,
+                )
+                return JSONResponse({"ok": True})
             await asyncio.to_thread(
                 _maybe_redeem_first_rub_sync, s.db_path, pid
             )
@@ -539,6 +558,21 @@ async def pay_hook(request: Request) -> Any:
     except Exception as e:  # pragma: no cover
         log.exception("webhook: %s", e)
     return JSONResponse({"ok": True})
+
+
+@app.get("/healthz", include_in_schema=False)
+async def healthz() -> Any:
+    s = load_settings()
+    db_ok = s.db_path.exists() or s.db_path.parent.exists()
+    return JSONResponse(
+        {
+            "ok": True,
+            "db_path": str(s.db_path),
+            "db_ready": db_ok,
+            "yookassa_configured": bool(SHOP_ID and SECRET),
+            "webhook_configured": bool(WEBHOOK_TOKEN),
+        }
+    )
 
 
 # Локально (Docker / Uvicorn): тот же /assets, что в nginx на проде (web/assets).

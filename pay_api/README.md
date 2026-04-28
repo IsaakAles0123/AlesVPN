@@ -1,6 +1,7 @@
 # Веб-оплата AlesVPN (ЮKassa) и страница с ключом
 
 Сервис `main:app` (FastAPI): создаёт платёж в ЮKassa, после успеха вызывает ту же логику WireGuard, что и Telegram-бот (`ales_bot.wg_provision`), и отдаёт ключ на `/pay/done?t=…`.
+Ссылка `/pay/done?t=...` одноразовая: после первого успешного открытия становится недействительной.
 
 ## Переменные окружения
 
@@ -13,8 +14,9 @@
 | `PAY_API_MODE` | `1` | Позволяет не задавать `BOT_TOKEN` на машине, где крутится только касса (на одном сервере с ботом можно не ставить). |
 | `YOOKASSA_SHOP_ID` | из личного кабинета | `shopId` |
 | `YOOKASSA_SECRET_KEY` | секретный ключ | `secret key` |
+| `PAY_WEBHOOK_TOKEN` | длинный случайный токен | Обязательный токен для `POST /pay/hook`, передаётся в заголовке `X-Webhook-Token`. Без него webhook отклоняется. |
 | `PAY_BASE_URL` | `https://alesvpn.ru` | База для `return_url` и ссылок в письмах. Без слеша в конце. |
-| `PAY_FIRST_RUB_BYPASS_EMAILS` | `a@b.ru, c@d.ru` | Дополнительные e-mail (через запятую), для которых **не** действует лимит «1 ₽ — один раз»: можно снова оформлять первый месяц за 1 ₽. В коде по умолчанию уже в исключениях задан `isaakales26@mail.ru` (см. `main.py`); переменная **добавляет** адреса, не отменяет дефолт. |
+| `PAY_FIRST_RUB_BYPASS_EMAILS` | `a@b.ru, c@d.ru` | Список e-mail (через запятую), для которых **не** действует лимит «1 ₽ — один раз». По умолчанию список пустой. |
 
 ## Акция «1 ₽ — первый месяц»
 
@@ -47,7 +49,8 @@ python3 -m uvicorn pay_api.main:app --host 127.0.0.1 --port 8008
 В личном кабинете ЮKassa укажите URL: `https://alesvpn.ru/pay/hook` (POST).  
 Тогда, если пользователь **не** вернулся на `return`, выдача ключа догонится событием `payment.succeeded`.
 
-При необходимости настройте проверку IP-адресов ЮKassa по [документации](https://yookassa.ru/developers/using-api/webhooks).
+Отправляйте в webhook заголовок `X-Webhook-Token: <PAY_WEBHOOK_TOKEN>`.
+При необходимости дополнительно настройте проверку IP-адресов ЮKassa по [документации](https://yookassa.ru/developers/using-api/webhooks).
 
 ## Systemd
 

@@ -12,3 +12,8 @@
 Thumbs.db
 mobile/android/.gradle
 mobile/android/**/intermediates
+.env
+*.sqlite
+*.sqlite3
+*.db
+keys/

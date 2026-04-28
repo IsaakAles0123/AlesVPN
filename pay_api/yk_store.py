@@ -158,6 +158,50 @@ def get_by_token(path: Path, token: str) -> YkOrderRow | None:
         conn.close()
 
 
+def consume_token_once(path: Path, token: str) -> YkOrderRow | None:
+    """
+    Атомарно помечает return_token как использованный и возвращает строку.
+    Повторный вызов для того же token вернет None.
+    """
+    conn = _connect(path)
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute(
+            """
+            SELECT yk_id, plan_code, amount_value, return_token, status,
+                   paste_two_lines, conf_text, provision_error, first_view_at,
+                   customer_email
+            FROM yookassa_web
+            WHERE return_token = ?
+              AND (first_view_at IS NULL OR TRIM(first_view_at) = '')
+            """,
+            (token,),
+        ).fetchone()
+        if not row:
+            conn.execute("ROLLBACK")
+            return None
+        conn.execute(
+            """
+            UPDATE yookassa_web
+            SET first_view_at = datetime('now')
+            WHERE return_token = ?
+              AND (first_view_at IS NULL OR TRIM(first_view_at) = '')
+            """,
+            (token,),
+        )
+        conn.execute("COMMIT")
+        return YkOrderRow(*row)
+    except Exception:
+        try:
+            conn.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
+
+
 def first_rub_taken_for_email(path: Path, email_norm: str) -> bool:
     if not email_norm:
         return False

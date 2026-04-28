@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.Resources
 import androidx.core.content.edit
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.myvpn.app.R
 
 /**
@@ -13,7 +15,7 @@ import com.myvpn.app.R
 class VpnSettingsRepository(context: Context) {
 
     private val prefs: SharedPreferences =
-        context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        createSecurePrefs(context.applicationContext)
 
     fun loadPrivateKey(): String = prefs.getString(KEY_PRIVATE_KEY, "") ?: ""
 
@@ -67,6 +69,24 @@ class VpnSettingsRepository(context: Context) {
         private const val PREFS_NAME = "ales_vpn_wg_user"
         private const val KEY_PRIVATE_KEY = "private_key"
         private const val KEY_ADDRESS = "address"
+
+        private fun createSecurePrefs(context: Context): SharedPreferences {
+            return try {
+                val masterKey = MasterKey.Builder(context)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build()
+                EncryptedSharedPreferences.create(
+                    context,
+                    PREFS_NAME,
+                    masterKey,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+                )
+            } catch (_: Exception) {
+                // Fallback keeps app functional on broken crypto providers.
+                context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            }
+        }
 
         /**
          * Вторая строка может быть `10.8.0.5` — добавим /32.
