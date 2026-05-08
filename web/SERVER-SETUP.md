@@ -92,6 +92,29 @@ sudo certbot --nginx -d alesvpn.ru -d www.alesvpn.ru
 
 Повторяй `scp` или WinSCF в `/var/www/alesvpn/`, `certbot` заново **не** нужен, пока не сменил домен.
 
+## 8. Обновление pay_api без git на VPS (`/var/www/alesvpn-app`)
+
+Если каталог приложения на сервере **не** клонирован из GitHub, после каждого изменения в [`pay_api`](../pay_api/) делай так на **Windows** из корня репозитория `C:\MyVPN`:
+
+```powershell
+.\scripts\deploy-pay-api-to-vps.ps1
+```
+
+Опционально залить шаблон nginx в `/tmp` (если правили [`web/nginx-alesvpn-site.conf`](nginx-alesvpn-site.conf)):
+
+```powershell
+.\scripts\deploy-pay-api-to-vps.ps1 -IncludeNginxSample
+```
+
+На **сервере**:
+
+```bash
+sudo systemctl restart alesvpn-pay
+curl -s http://127.0.0.1:8008/healthz
+```
+
+Подробности переменных и webhook — в [`pay_api/README.md`](../pay_api/README.md).
+
 ---
 
 Ошибка Certbot: **нужен** рабочий `http://alesvpn.ru` с этого же сервера и **порт 80** с интернета. Проверь **DNS** и **ufw/облачный** фаервол (панель Timeweb, группы безопасности), чтобы **80/443** были **вход**.

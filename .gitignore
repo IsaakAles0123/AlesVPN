@@ -1,3 +1,8 @@
+# Android release signing (local only)
+mobile/android/keystore.properties
+mobile/android/*.jks
+mobile/android/*.keystore
+
 # Gradle / Android
 **/build/
 **/.gradle/

@@ -1,0 +1,18 @@
+Google Play — чеклист перед загрузкой AlesVPN (VPN)
+
+Подготовка сборки
+-----------------
+1. Создай keystore (один раз): см. комментарии в mobile/android/keystore.properties.example
+2. Скопируй keystore.properties.example -> mobile/android/keystore.properties, заполни пути и пароли.
+3. Положи файл keystore (.jks / .keystore) в mobile/android/ рядом с путём из storeFile.
+4. Сборка AAB: из каталога mobile/android выполни:
+   .\gradlew.bat :app:bundleRelease
+
+Консоль разработчика (play.google.com/console)
+----------------------------------------------
+- Заполни Data safety: данные VPN (трафик через сервер), что собирается и зачем.
+- Укажи ссылку на политику конфиденциальности (публичный URL).
+- Классификация приложения, контент, целевая аудитория — по анкете Play.
+- Загрузи AAB из mobile/android/app/build/outputs/bundle/release/
+
+После публикации проверь страницу приложения и тестовую установку через внутреннее тестирование.

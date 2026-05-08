@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+- Деплой pay_api на VPS без git: [`scripts/deploy-pay-api-to-vps.ps1`](scripts/deploy-pay-api-to-vps.ps1), раздел в [`web/SERVER-SETUP.md`](web/SERVER-SETUP.md).
+- Android: release-подпись при наличии `mobile/android/keystore.properties` ([`keystore.properties.example`](mobile/android/keystore.properties.example)); чеклист Play — [`docs/play-console-checklist.txt`](docs/play-console-checklist.txt).
+- iOS/Android: сверка `wg_vendor_*` — [`tools/verify-wg-vendor-sync.ps1`](tools/verify-wg-vendor-sync.ps1); инструкция в [`mobile/ios/README.md`](mobile/ios/README.md).
+- Очистка истории git от секретов: [`docs/git-secrets-history.txt`](docs/git-secrets-history.txt).
+- Сайт: обновлён [`web/assets/alesvpn.apk`](web/assets/alesvpn.apk) (0.1.3 / versionCode 4, debug для лендинга).
 - Репозиторий: из индекса git убраны локальная БД `.payments.sqlite`, кеш Python и личные CV; дополнен `.gitignore`; учётный CSV — только шаблон без секретов.
 - `pay_api`: webhook ЮKassa без обязательного `PAY_WEBHOOK_TOKEN` (при пустом токене защита через проверку платежа в API); опциональный токен + подсказка в nginx.
 - iOS: каркас проекта в `mobile/ios/` (SwiftUI + Packet Tunnel + WireGuardKit, сборка на macOS с Xcode).

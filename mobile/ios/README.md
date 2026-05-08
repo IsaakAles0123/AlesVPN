@@ -45,6 +45,16 @@
 
 Для Network Extension на устройстве нужен **платный Apple Developer Program** (или корпоративная команда с соответствующими профилями).
 
+## Синхронизация параметров сервера с Android
+
+Публичный ключ сервера, endpoint и DNS должны совпадать с `mobile/android/app/src/main/res/values/strings.xml` (`wg_vendor_*`). После правок запусти из корня репозитория на Windows:
+
+```powershell
+.\tools\verify-wg-vendor-sync.ps1
+```
+
+Код 0 — значения в `WgConfigBuilder.swift` и XML совпадают.
+
 ## Что дальше
 
 - Выровнять UI с Android (глобус, карусель серверов) — сейчас минимальный экран.

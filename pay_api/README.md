@@ -55,6 +55,10 @@ python3 -m uvicorn pay_api.main:app --host 127.0.0.1 --port 8008
 
 При необходимости дополнительно настройте проверку IP-адресов ЮKassa по [документации](https://yookassa.ru/developers/using-api/webhooks).
 
+## Обновление кода на VPS без git
+
+Из корня репозитория на Windows: `.\scripts\deploy-pay-api-to-vps.ps1`, затем на сервере `sudo systemctl restart alesvpn-pay`. Пошагово — в [`web/SERVER-SETUP.md`](../web/SERVER-SETUP.md) (раздел 8).
+
 ## Systemd
 
 Готовый unit: [`deploy/alesvpn-pay.service`](deploy/alesvpn-pay.service) (по умолчанию **`User=root`**, тот же SQLite, что бот, без плясок с правами; при **`www-data`** дайте запись на каталог/файл `DB_PATH`).
