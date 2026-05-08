@@ -14,7 +14,7 @@
 | `PAY_API_MODE` | `1` | Позволяет не задавать `BOT_TOKEN` на машине, где крутится только касса (на одном сервере с ботом можно не ставить). |
 | `YOOKASSA_SHOP_ID` | из личного кабинета | `shopId` |
 | `YOOKASSA_SECRET_KEY` | секретный ключ | `secret key` |
-| `PAY_WEBHOOK_TOKEN` | длинный случайный токен | Обязательный токен для `POST /pay/hook`, передаётся в заголовке `X-Webhook-Token`. Без него webhook отклоняется. |
+| `PAY_WEBHOOK_TOKEN` | длинный случайный токен | Необязательно. Если задан — для `POST /pay/hook` нужен заголовок `X-Webhook-Token` (ЮKassa сама заголовки не шлёт; можно пробросить через nginx или оставить переменную пустой и полагаться на проверку платежа через API). |
 | `PAY_BASE_URL` | `https://alesvpn.ru` | База для `return_url` и ссылок в письмах. Без слеша в конце. |
 | `PAY_FIRST_RUB_BYPASS_EMAILS` | `a@b.ru, c@d.ru` | Список e-mail (через запятую), для которых **не** действует лимит «1 ₽ — один раз». По умолчанию список пустой. |
 
@@ -49,7 +49,10 @@ python3 -m uvicorn pay_api.main:app --host 127.0.0.1 --port 8008
 В личном кабинете ЮKassa укажите URL: `https://alesvpn.ru/pay/hook` (POST).  
 Тогда, если пользователь **не** вернулся на `return`, выдача ключа догонится событием `payment.succeeded`.
 
-Отправляйте в webhook заголовок `X-Webhook-Token: <PAY_WEBHOOK_TOKEN>`.
+Если задан `PAY_WEBHOOK_TOKEN`, добавьте на nginx для `/pay/hook` строку  
+`proxy_set_header X-Webhook-Token "<значение из .env>";` — иначе ЮKassa не сможет передать заголовок сама.  
+Если токен **не** задан, webhook от ЮKassa принимается; выдача ключа всё равно только после проверки платежа в API и совпадения суммы с заказом в БД.
+
 При необходимости дополнительно настройте проверку IP-адресов ЮKassa по [документации](https://yookassa.ru/developers/using-api/webhooks).
 
 ## Systemd

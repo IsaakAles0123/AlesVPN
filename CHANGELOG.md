@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+- Репозиторий: из индекса git убраны локальная БД `.payments.sqlite`, кеш Python и личные CV; дополнен `.gitignore`; учётный CSV — только шаблон без секретов.
+- `pay_api`: webhook ЮKassa без обязательного `PAY_WEBHOOK_TOKEN` (при пустом токене защита через проверку платежа в API); опциональный токен + подсказка в nginx.
 - iOS: каркас проекта в `mobile/ios/` (SwiftUI + Packet Tunnel + WireGuardKit, сборка на macOS с Xcode).
 - `bots/telegram/`: бот оплаты через **Telegram Stars** (aiogram 3), уведомления админам.
 - Дальнейшие правки — по мере работы.

@@ -508,15 +508,18 @@ async def pay_index() -> Any:
 
 @app.post("/pay/hook", include_in_schema=False)
 async def pay_hook(request: Request) -> Any:
-    """YooKassa: payment.succeeded — догнать выдачу, если return не сработал."""
+    """YooKassa: payment.succeeded — догнать выдачу, если return не сработал.
+
+    Если задан PAY_WEBHOOK_TOKEN — требуется заголовок X-Webhook-Token (можно
+    пробросить через nginx). Если токен не задан — типичный POST от ЮKassa:
+    защита только проверкой платежа через API и совпадением суммы с заказом в БД.
+    """
     if not (SHOP_ID and SECRET):
         return JSONResponse({"ok": False}, 503)
-    if not WEBHOOK_TOKEN:
-        log.warning("Webhook disabled: PAY_WEBHOOK_TOKEN is not set")
-        return JSONResponse({"ok": False}, 503)
-    got_token = (request.headers.get("X-Webhook-Token") or "").strip()
-    if not hmac.compare_digest(got_token, WEBHOOK_TOKEN):
-        return JSONResponse({"ok": False}, 403)
+    if WEBHOOK_TOKEN:
+        got_token = (request.headers.get("X-Webhook-Token") or "").strip()
+        if not hmac.compare_digest(got_token, WEBHOOK_TOKEN):
+            return JSONResponse({"ok": False}, 403)
     try:
         body = await request.json()
     except Exception:
@@ -570,7 +573,7 @@ async def healthz() -> Any:
             "db_path": str(s.db_path),
             "db_ready": db_ok,
             "yookassa_configured": bool(SHOP_ID and SECRET),
-            "webhook_configured": bool(WEBHOOK_TOKEN),
+            "webhook_token_set": bool(WEBHOOK_TOKEN),
         }
     )
 

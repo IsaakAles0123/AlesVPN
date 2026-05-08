@@ -43,3 +43,18 @@ wireguard/phone.conf
 # Сгенерированные ключи (не коммитить)
 /keys/
 keys/
+
+# SQLite / локальные БД (оплаты, бот — не коммитить)
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Личные файлы вне продукта
+CV_*.html
+CV_*.pdf
+
+# Локальные WireGuard-клиенты (генерируются вручную)
+wg-client-*.conf
