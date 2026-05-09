@@ -44,7 +44,6 @@ import com.myvpn.app.ui.theme.AccentGold
 import com.myvpn.app.ui.theme.AccentGoldBright
 import com.myvpn.app.ui.theme.BeltBlack
 import com.myvpn.app.ui.theme.BeltConnecting
-import com.myvpn.app.ui.theme.BeltWhite
 import com.myvpn.app.ui.theme.GoldPatch
 import com.wireguard.android.backend.Tunnel
 
@@ -91,10 +90,16 @@ private fun TkdDobokWithBelt(
     )
 
     val beltColor = when (tunnelState) {
-        Tunnel.State.DOWN -> BeltWhite
+        Tunnel.State.DOWN -> Color(0xFFF9FAFB)
         Tunnel.State.UP -> BeltBlack
         Tunnel.State.TOGGLE -> BeltConnecting.copy(alpha = pulse)
     }
+    val beltBorderColor = when (tunnelState) {
+        Tunnel.State.DOWN -> Color(0xFF374151)
+        Tunnel.State.UP -> Color(0xFF6B7280)
+        Tunnel.State.TOGGLE -> Color(0xFF4B5563)
+    }
+    val beltBorderWidth = if (tunnelState == Tunnel.State.DOWN) 2.dp else 1.dp
     val showGoldPatch = tunnelState == Tunnel.State.UP
     val knotColor = when (tunnelState) {
         Tunnel.State.UP -> Color(0xFF2A2A2A)
@@ -116,28 +121,29 @@ private fun TkdDobokWithBelt(
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
-                .offset(y = 26.dp)
-                .fillMaxWidth(0.62f)
-                .height(22.dp)
+                .offset(y = 28.dp)
+                .fillMaxWidth(0.64f)
+                .height(26.dp)
                 .clip(beltShape)
                 .background(beltColor)
-                .border(1.dp, Color.Black.copy(alpha = 0.4f), beltShape),
+                .border(beltBorderWidth, beltBorderColor, beltShape),
         )
 
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
-                .offset(y = 26.dp)
-                .size(width = 14.dp, height = 20.dp)
-                .clip(RoundedCornerShape(3.dp))
-                .background(knotColor),
+                .offset(y = 28.dp)
+                .size(width = 16.dp, height = 22.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(knotColor)
+                .border(1.dp, Color.Black.copy(alpha = 0.25f), RoundedCornerShape(4.dp)),
         )
 
         if (showGoldPatch) {
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .offset(x = 64.dp, y = 26.dp)
+                    .offset(x = 64.dp, y = 28.dp)
                     .width(20.dp)
                     .height(15.dp)
                     .clip(RoundedCornerShape(4.dp))
@@ -165,8 +171,9 @@ private fun FistPowerButton(
 
     Box(
         modifier = Modifier
-            .size(140.dp)
+            .size(144.dp)
             .clip(RoundedCornerShape(32.dp))
+            .background(Color(0xFF3F424D))
             .border(borderW, borderColor, RoundedCornerShape(32.dp))
             .semantics {
                 contentDescription = cd
@@ -185,7 +192,7 @@ private fun FistPowerButton(
             contentDescription = null,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(14.dp),
+                .padding(12.dp),
             contentScale = ContentScale.Fit,
         )
     }
