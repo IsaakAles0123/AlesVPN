@@ -18,11 +18,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.Card
@@ -44,10 +42,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.myvpn.app.R
+import com.myvpn.app.ui.theme.AccentGold
+import com.myvpn.app.ui.theme.AccentGoldBright
+import com.myvpn.app.ui.theme.AccentGoldDim
 import com.myvpn.app.ui.theme.AlesSpacing
-import com.myvpn.app.ui.theme.NeonCyan
-import com.myvpn.app.ui.theme.NeonPurple
-import com.myvpn.app.ui.theme.NeonPurpleDim
 import com.myvpn.app.ui.theme.TextMuted
 import com.wireguard.android.backend.Tunnel
 
@@ -81,7 +79,10 @@ fun RefTopBar(
                 .clip(RoundedCornerShape(24.dp))
                 .background(
                     Brush.horizontalGradient(
-                        listOf(NeonPurpleDim.copy(alpha = 0.9f), Color(0xFF3D2560)),
+                        listOf(
+                            AccentGoldDim.copy(alpha = 0.95f),
+                            Color(0xFF4A3A12),
+                        ),
                     ),
                 )
                 .clickable(onClick = onPlusClick)
@@ -92,7 +93,7 @@ fun RefTopBar(
             Icon(
                 imageVector = Icons.Rounded.WorkspacePremium,
                 contentDescription = null,
-                tint = Color(0xFFFFE08A),
+                tint = GoldPatchTint,
                 modifier = Modifier.size(18.dp),
             )
             Text(
@@ -106,11 +107,13 @@ fun RefTopBar(
             Icon(
                 imageVector = Icons.Rounded.Settings,
                 contentDescription = "Ключ доступа",
-                tint = NeonCyan,
+                tint = AccentGoldBright,
             )
         }
     }
 }
+
+private val GoldPatchTint = Color(0xFFFFE08A)
 
 @Composable
 fun ConnectionStatusBlock(
@@ -189,60 +192,6 @@ fun ServerLocationPill(
 }
 
 @Composable
-fun GlobePowerCluster(
-    tunnelState: Tunnel.State,
-    onPowerClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val busy = tunnelState == Tunnel.State.TOGGLE
-    val enabled = !busy
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(272.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        val ringAlphas = listOf(0.14f, 0.10f, 0.06f, 0.04f)
-        ringAlphas.forEachIndexed { i, a ->
-            Box(
-                modifier = Modifier
-                    .size((140 + i * 28).dp)
-                    .align(Alignment.Center)
-                    .border(
-                        width = 2.dp,
-                        brush = Brush.sweepGradient(
-                            listOf(
-                                NeonPurple.copy(alpha = a * 2f),
-                                NeonCyan.copy(alpha = a),
-                                NeonPurple.copy(alpha = a * 2f),
-                            ),
-                        ),
-                        shape = CircleShape,
-                    ),
-            )
-        }
-        androidx.compose.material3.FilledIconButton(
-            onClick = { if (enabled) onPowerClick() },
-            modifier = Modifier
-                .align(Alignment.Center)
-                .size(88.dp),
-            enabled = enabled,
-            shape = CircleShape,
-            colors = androidx.compose.material3.IconButtonDefaults.filledIconButtonColors(
-                containerColor = if (tunnelState == Tunnel.State.UP) NeonPurple else Color(0xFF2E3140),
-                contentColor = Color.White,
-            ),
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.PowerSettingsNew,
-                contentDescription = null,
-                modifier = Modifier.size(44.dp),
-            )
-        }
-    }
-}
-
-@Composable
 fun ServerCarousel(
     servers: List<MockServer>,
     selectedIndex: Int,
@@ -279,7 +228,7 @@ fun ServerCarousel(
                     .clickable { onSelect(index) },
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (selected) NeonPurple.copy(alpha = 0.95f) else Color(0xFF14151C),
+                    containerColor = if (selected) AccentGold.copy(alpha = 0.92f) else Color(0xFF14151C),
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 8.dp else 2.dp),
             ) {
@@ -362,7 +311,7 @@ fun VpnRefDashboard(
                 Text(
                     text = stringResource(R.string.dashboard_no_key_hint),
                     style = MaterialTheme.typography.bodySmall,
-                    color = NeonCyan.copy(alpha = 0.85f),
+                    color = AccentGoldBright.copy(alpha = 0.9f),
                     textAlign = TextAlign.Center,
                 )
             }
@@ -375,9 +324,11 @@ fun VpnRefDashboard(
                 tunnelState = tunnelState,
                 sessionStartMs = sessionStartMs,
                 idleText = timerIdle,
+                primaryColor = AccentGoldBright,
+                secondaryColor = TextMuted,
             )
         }
-        GlobePowerCluster(
+        TkdFistConnectCluster(
             tunnelState = tunnelState,
             onPowerClick = onPowerClick,
             modifier = Modifier

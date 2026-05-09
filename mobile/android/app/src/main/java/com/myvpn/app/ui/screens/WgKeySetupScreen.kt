@@ -44,8 +44,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import android.widget.Toast
 import com.myvpn.app.data.VpnSettingsRepository
-import com.myvpn.app.ui.components.NeonBackground
-import com.myvpn.app.ui.theme.NeonCyan
+import com.myvpn.app.ui.components.TkdBackground
+import com.myvpn.app.ui.theme.AccentGold
+import com.myvpn.app.ui.theme.AccentGoldBright
 import com.myvpn.app.ui.theme.TextMuted
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,7 +65,7 @@ fun WgKeySetupScreen(
     var address by remember { mutableStateOf(repository.loadAddress()) }
     var pasteBox by remember { mutableStateOf("") }
 
-    NeonBackground {
+    TkdBackground {
         Scaffold(
             modifier = modifier.fillMaxSize(),
             containerColor = Color.Transparent,
@@ -140,15 +141,15 @@ fun WgKeySetupScreen(
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = NeonCyan.copy(alpha = 0.25f)),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentGold.copy(alpha = 0.25f)),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
                     ) {
-                        Icon(Icons.Rounded.ContentPaste, contentDescription = null, tint = NeonCyan)
+                        Icon(Icons.Rounded.ContentPaste, contentDescription = null, tint = AccentGoldBright)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Разобрать вставку", color = NeonCyan)
+                        Text("Разобрать вставку", color = AccentGoldBright)
                     }
                 }
 
@@ -198,7 +199,7 @@ fun WgKeySetupScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp, bottom = 24.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentGold),
                 ) {
                     Text("Сохранить", color = Color.Black)
                 }
