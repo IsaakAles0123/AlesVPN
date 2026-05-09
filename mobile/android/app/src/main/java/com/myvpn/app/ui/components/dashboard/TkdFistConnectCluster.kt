@@ -6,17 +6,22 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -25,12 +30,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -43,8 +45,6 @@ import com.myvpn.app.ui.theme.AccentGoldBright
 import com.myvpn.app.ui.theme.BeltBlack
 import com.myvpn.app.ui.theme.BeltConnecting
 import com.myvpn.app.ui.theme.BeltWhite
-import com.myvpn.app.ui.theme.DobokFabric
-import com.myvpn.app.ui.theme.DobokTrim
 import com.myvpn.app.ui.theme.GoldPatch
 import com.wireguard.android.backend.Tunnel
 
@@ -57,17 +57,17 @@ fun TkdFistConnectCluster(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .height(340.dp),
+            .height(360.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         TkdDobokWithBelt(
             tunnelState = tunnelState,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
-                .padding(horizontal = 24.dp),
+                .height(220.dp)
+                .padding(horizontal = 16.dp),
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         FistPowerButton(
             tunnelState = tunnelState,
             onClick = onPowerClick,
@@ -96,87 +96,53 @@ private fun TkdDobokWithBelt(
         Tunnel.State.TOGGLE -> BeltConnecting.copy(alpha = pulse)
     }
     val showGoldPatch = tunnelState == Tunnel.State.UP
+    val knotColor = when (tunnelState) {
+        Tunnel.State.UP -> Color(0xFF2A2A2A)
+        else -> Color(0xFFC8C8C8)
+    }
 
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-
-        drawRoundRect(
-            color = DobokFabric,
-            topLeft = Offset(w * 0.22f, h * 0.06f),
-            size = Size(w * 0.56f, h * 0.74f),
-            cornerRadius = CornerRadius(14f, 14f),
-        )
-        drawRoundRect(
-            color = Color.Black.copy(alpha = 0.06f),
-            topLeft = Offset(w * 0.22f, h * 0.06f),
-            size = Size(w * 0.56f, h * 0.74f),
-            cornerRadius = CornerRadius(14f, 14f),
-            style = Stroke(1f),
+    Box(modifier = modifier) {
+        Image(
+            painter = painterResource(id = R.drawable.tkd_dobok_torso),
+            contentDescription = null,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth(0.88f)
+                .fillMaxHeight(),
+            contentScale = ContentScale.Fit,
         )
 
-        val collar = Path().apply {
-            moveTo(w * 0.5f, h * 0.1f)
-            lineTo(w * 0.36f, h * 0.26f)
-            lineTo(w * 0.64f, h * 0.26f)
-            close()
-        }
-        drawPath(collar, color = DobokTrim)
-
-        val beltTop = h * 0.52f
-        val beltH = h * 0.12f
-        val beltLeft = w * 0.16f
-        val beltW = w * 0.68f
-        drawRoundRect(
-            color = beltColor,
-            topLeft = Offset(beltLeft, beltTop),
-            size = Size(beltW, beltH),
-            cornerRadius = CornerRadius(4f, 4f),
-        )
-        drawRoundRect(
-            color = Color.Black.copy(alpha = 0.35f),
-            topLeft = Offset(beltLeft, beltTop),
-            size = Size(beltW, beltH),
-            cornerRadius = CornerRadius(4f, 4f),
-            style = Stroke(1.2f),
+        val beltShape = RoundedCornerShape(6.dp)
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .offset(y = 26.dp)
+                .fillMaxWidth(0.62f)
+                .height(22.dp)
+                .clip(beltShape)
+                .background(beltColor)
+                .border(1.dp, Color.Black.copy(alpha = 0.4f), beltShape),
         )
 
-        val knot = Path().apply {
-            val cx = w * 0.5f
-            val cy = beltTop + beltH * 0.5f
-            val rh = beltH * 0.42f
-            val rw = w * 0.06f
-            moveTo(cx, cy - rh)
-            lineTo(cx + rw, cy)
-            lineTo(cx, cy + rh)
-            lineTo(cx - rw, cy)
-            close()
-        }
-        drawPath(
-            knot,
-            color = when (tunnelState) {
-                Tunnel.State.UP -> Color(0xFF2A2A2A)
-                else -> Color(0xFFD0D0D0)
-            },
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .offset(y = 26.dp)
+                .size(width = 14.dp, height = 20.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(knotColor),
         )
 
         if (showGoldPatch) {
-            val patchW = w * 0.09f
-            val patchH = beltH * 0.72f
-            val px = beltLeft + beltW - patchW - w * 0.03f
-            val py = beltTop + (beltH - patchH) / 2f
-            drawRoundRect(
-                color = GoldPatch,
-                topLeft = Offset(px, py),
-                size = Size(patchW, patchH),
-                cornerRadius = CornerRadius(3f, 3f),
-            )
-            drawRoundRect(
-                color = AccentGoldBright,
-                topLeft = Offset(px, py),
-                size = Size(patchW, patchH),
-                cornerRadius = CornerRadius(3f, 3f),
-                style = Stroke(1.5f),
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .offset(x = 64.dp, y = 26.dp)
+                    .width(20.dp)
+                    .height(15.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(GoldPatch)
+                    .border(1.5.dp, AccentGoldBright, RoundedCornerShape(4.dp)),
             )
         }
     }
@@ -190,21 +156,18 @@ private fun FistPowerButton(
     val busy = tunnelState == Tunnel.State.TOGGLE
     val enabled = !busy
     val cd = stringResource(R.string.dashboard_connect_fist_cd)
-    val stroke = when (tunnelState) {
+    val borderColor = when (tunnelState) {
         Tunnel.State.UP -> AccentGold
-        Tunnel.State.DOWN -> Color(0xFF4A4A52)
-        Tunnel.State.TOGGLE -> AccentGold.copy(alpha = 0.5f)
+        Tunnel.State.DOWN -> Color(0xFF5C5C68)
+        Tunnel.State.TOGGLE -> AccentGold.copy(alpha = 0.45f)
     }
-    val fill = when (tunnelState) {
-        Tunnel.State.UP -> Color(0xFF2A2418)
-        Tunnel.State.DOWN -> Color(0xFF1E1E24)
-        Tunnel.State.TOGGLE -> Color(0xFF252018)
-    }
+    val borderW = if (tunnelState == Tunnel.State.UP) 3.dp else 2.dp
 
     Box(
         modifier = Modifier
-            .size(132.dp)
-            .clip(RoundedCornerShape(28.dp))
+            .size(140.dp)
+            .clip(RoundedCornerShape(32.dp))
+            .border(borderW, borderColor, RoundedCornerShape(32.dp))
             .semantics {
                 contentDescription = cd
                 role = Role.Button
@@ -217,42 +180,13 @@ private fun FistPowerButton(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(modifier = Modifier.fillMaxSize().padding(10.dp)) {
-            val w = size.width
-            val h = size.height
-            val fistPath = Path().apply {
-                moveTo(w * 0.52f, h * 0.18f)
-                quadraticTo(w * 0.88f, h * 0.2f, w * 0.9f, h * 0.42f)
-                quadraticTo(w * 0.92f, h * 0.58f, w * 0.78f, h * 0.68f)
-                lineTo(w * 0.72f, h * 0.82f)
-                quadraticTo(w * 0.55f, h * 0.92f, w * 0.38f, h * 0.82f)
-                lineTo(w * 0.22f, h * 0.62f)
-                quadraticTo(w * 0.08f, h * 0.48f, w * 0.12f, h * 0.32f)
-                quadraticTo(w * 0.18f, h * 0.16f, w * 0.52f, h * 0.18f)
-                close()
-            }
-            drawPath(fistPath, color = fill)
-            drawPath(fistPath, color = stroke, style = Stroke(width = 3.5f))
-
-            val knuckleY = h * 0.32f
-            for (i in 0..3) {
-                val x = w * (0.28f + i * 0.14f)
-                drawLine(
-                    color = stroke.copy(alpha = 0.65f),
-                    start = Offset(x, knuckleY),
-                    end = Offset(x + w * 0.06f, knuckleY + h * 0.02f),
-                    strokeWidth = 2f,
-                )
-            }
-            drawArc(
-                color = stroke.copy(alpha = 0.5f),
-                startAngle = 200f,
-                sweepAngle = 140f,
-                useCenter = false,
-                topLeft = Offset(w * 0.18f, h * 0.52f),
-                size = Size(w * 0.28f, h * 0.22f),
-                style = Stroke(2f),
-            )
-        }
+        Image(
+            painter = painterResource(id = R.drawable.ic_tkd_fist),
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(14.dp),
+            contentScale = ContentScale.Fit,
+        )
     }
 }
