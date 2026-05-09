@@ -51,7 +51,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.myvpn.app.ui.theme.AlesSpacing
-import com.myvpn.app.ui.theme.AccentGold
+import com.myvpn.app.ui.theme.NeonCyan
 import com.wireguard.android.backend.Tunnel
 import kotlinx.coroutines.launch
 
@@ -142,7 +142,7 @@ fun VerticalSwipeVpnSlider(
                     for (i in 0..4) {
                         val r = 12f + i * 10f
                         drawArc(
-                            color = AccentGold.copy(alpha = 0.12f - i * 0.015f),
+                            color = NeonCyan.copy(alpha = 0.12f - i * 0.015f),
                             startAngle = 200f,
                             sweepAngle = 140f,
                             useCenter = false,
@@ -238,7 +238,7 @@ fun VerticalSwipeVpnSlider(
                                 .width(32.dp)
                                 .height(3.dp)
                                 .clip(RoundedCornerShape(2.dp))
-                                .background(if (showConnect) AccentGold else accentGreen),
+                                .background(if (showConnect) NeonCyan else accentGreen),
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
