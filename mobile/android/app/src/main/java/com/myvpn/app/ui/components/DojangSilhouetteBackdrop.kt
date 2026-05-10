@@ -15,36 +15,51 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.myvpn.app.R
 
+private data class SilSlot(val col: Int, val row: Int, val drawable: Int)
+
 /**
- * Декоративные силуэты (PNG с прозрачным фоном).
- * Размер и позиции подобраны так, чтобы не заходить в центральную колонку с добоком и кулаком.
+ * Силуэты в сетке 3×3 без центра — центр свободен под добок и кулак.
+ * Линейный размер ~в 3 раза больше прежнего, но не больше ячейки (без пересечений).
  */
 @Composable
 fun DojangSilhouetteBackdrop(modifier: Modifier = Modifier) {
     BoxWithConstraints(modifier.fillMaxSize()) {
-        val h = maxHeight
         val w = maxWidth
-        val sil = (w * 0.17f).coerceIn(48.dp, 78.dp)
-        val a = 0.19f
+        val h = maxHeight
+        val cw = w / 3f
+        val ch = h / 3f
+        val tripleTarget = (w * 0.17f).coerceIn(48.dp, 78.dp) * 3f
+        val cellFit = minOf(cw, ch) * 0.94f
+        val sil: Dp = minOf(tripleTarget, cellFit).coerceAtLeast(108.dp)
+        val a = 0.17f
+
+        val slots = listOf(
+            SilSlot(0, 0, R.drawable.dojang_bg_yop_chagi),
+            SilSlot(1, 0, R.drawable.dojang_bg_roundhouse),
+            SilSlot(2, 0, R.drawable.dojang_bg_jumping_kick),
+            SilSlot(0, 1, R.drawable.dojang_bg_ready_stance),
+            SilSlot(2, 1, R.drawable.dojang_bg_power_punch),
+            SilSlot(0, 2, R.drawable.dojang_bg_jumping_kick),
+            SilSlot(1, 2, R.drawable.dojang_bg_yop_chagi),
+            SilSlot(2, 2, R.drawable.dojang_bg_roundhouse),
+        )
 
         @Composable
-        fun Sil(drawable: Int, align: Alignment, xOff: Dp, yOff: Dp) {
+        fun Sil(slot: SilSlot) {
+            val x = cw * slot.col + (cw - sil) / 2
+            val y = ch * slot.row + (ch - sil) / 2
             Image(
-                painter = painterResource(drawable),
+                painter = painterResource(slot.drawable),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
-                    .align(align)
-                    .offset(xOff, yOff)
+                    .align(Alignment.TopStart)
+                    .offset(x, y)
                     .size(sil)
                     .alpha(a),
             )
         }
 
-        Sil(R.drawable.dojang_bg_yop_chagi, Alignment.TopStart, w * 0.04f, h * 0.11f)
-        Sil(R.drawable.dojang_bg_roundhouse, Alignment.TopEnd, -w * 0.04f, h * 0.13f)
-        Sil(R.drawable.dojang_bg_ready_stance, Alignment.CenterStart, w * 0.02f, -h * 0.15f)
-        Sil(R.drawable.dojang_bg_power_punch, Alignment.CenterEnd, -w * 0.02f, -h * 0.09f)
-        Sil(R.drawable.dojang_bg_jumping_kick, Alignment.BottomStart, w * 0.05f, -h * 0.11f)
+        slots.forEach { Sil(it) }
     }
 }
