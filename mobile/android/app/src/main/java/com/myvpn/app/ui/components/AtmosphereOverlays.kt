@@ -9,7 +9,7 @@ import androidx.compose.ui.graphics.Color
 import com.myvpn.app.ui.theme.AccentRed
 
 /**
- * Виньет: к центру экрана чуть светлее, к углам темнее.
+ * Лёгкая виньетка для светлого фона: чуть темнее к краям.
  */
 @Composable
 fun ScreenVignetteOverlay(modifier: Modifier = Modifier) {
@@ -24,8 +24,8 @@ fun ScreenVignetteOverlay(modifier: Modifier = Modifier) {
             brush = Brush.radialGradient(
                 colors = listOf(
                     Color(0x00000000),
-                    Color(0x10050506),
-                    Color(0x38050506),
+                    Color(0x06C7C7CC),
+                    Color(0x14C7C7CC),
                 ),
                 center = Offset(cx, cy),
                 radius = r,
@@ -35,7 +35,7 @@ fun ScreenVignetteOverlay(modifier: Modifier = Modifier) {
 }
 
 /**
- * Мягкое свечение снизу (не используется в [DojangBackground]; оставлено для совместимости).
+ * Не используется в [DojangBackground]; оставлено для совместимости.
  */
 @Composable
 fun NebulaBottomGlowOverlay(modifier: Modifier = Modifier) {
@@ -47,9 +47,9 @@ fun NebulaBottomGlowOverlay(modifier: Modifier = Modifier) {
             brush = Brush.radialGradient(
                 colors = listOf(
                     Color(0x00000000),
-                    Color(0x1A1A0A1E),
-                    AccentRed.copy(alpha = 0.06f),
-                    Color(0x28050506),
+                    Color(0x08C7C7CC),
+                    AccentRed.copy(alpha = 0.04f),
+                    Color(0x0CC7C7CC),
                 ),
                 center = Offset(w * 0.5f, h * 0.99f),
                 radius = w * 0.95f,

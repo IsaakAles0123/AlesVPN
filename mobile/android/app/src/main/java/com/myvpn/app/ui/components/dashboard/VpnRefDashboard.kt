@@ -32,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -63,8 +62,8 @@ fun RefTopBar(
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(24.dp))
-                .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(24.dp))
-                .background(Color(0xFF101012), RoundedCornerShape(24.dp))
+                .border(1.dp, Color.Black.copy(alpha = 0.12f), RoundedCornerShape(24.dp))
+                .background(Color(0xFFFAFAFA), RoundedCornerShape(24.dp))
                 .clickable(onClick = onPlusClick)
                 .padding(start = 10.dp, end = 14.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -171,17 +170,24 @@ fun DobokFistCluster(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            Image(
-                painter = painterResource(dobokRes),
-                contentDescription = dobokCd,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.size(width = 188.dp, height = 216.dp),
-            )
+            Box(
+                modifier = Modifier
+                    .border(2.5.dp, Color(0xFF0A0A0A), RoundedCornerShape(16.dp))
+                    .background(Color.White, RoundedCornerShape(16.dp))
+                    .padding(8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    painter = painterResource(dobokRes),
+                    contentDescription = dobokCd,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(width = 188.dp, height = 216.dp),
+                )
+            }
             Image(
                 painter = painterResource(R.drawable.ic_connect_fist),
                 contentDescription = stringResource(R.string.dashboard_connect_fist_cd),
                 contentScale = ContentScale.Fit,
-                colorFilter = ColorFilter.tint(Color(0xFFF2F2F2)),
                 modifier = Modifier
                     .size(102.dp)
                     .alpha(if (enabled) 1f else 0.45f)
@@ -242,6 +248,8 @@ fun VpnRefDashboard(
                 tunnelState = tunnelState,
                 sessionStartMs = sessionStartMs,
                 idleText = timerIdle,
+                primaryColor = TextPrimary,
+                secondaryColor = TextMuted,
             )
         }
         DobokFistCluster(

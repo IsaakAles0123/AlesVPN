@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#050506</color>
-    <color name="primary">#F0F0F2</color>
-    <color name="on_primary">#050506</color>
-    <color name="primary_container">#2C2C30</color>
-    <color name="tertiary">#C23B3B</color>
+    <!-- Та же светлая палитра в night — приложение целенаправленно светлое. -->
+    <color name="ic_launcher_background">#FFFFFF</color>
+    <color name="primary">#C23B3B</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="primary_container">#FFDAD6</color>
+    <color name="tertiary">#636366</color>
     <color name="on_tertiary">#FFFFFF</color>
-    <color name="surface">#050506</color>
-    <color name="surface_variant">#141416</color>
-    <color name="on_surface">#F5F5F7</color>
-    <color name="on_surface_variant">#8E8E93</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_variant">#F2F2F7</color>
+    <color name="on_surface">#0A0A0A</color>
+    <color name="on_surface_variant">#636366</color>
     <color name="status_ok">#C23B3B</color>
-    <color name="status_idle">#8E8E93</color>
+    <color name="status_idle">#636366</color>
 </resources>

@@ -2,22 +2,22 @@ package com.myvpn.app.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val DarkColors = darkColorScheme(
-    primary = AccentGold,
-    onPrimary = BackgroundDeep,
-    primaryContainer = AccentGoldDim,
-    onPrimaryContainer = TextPrimary,
-    secondary = InkSecondary,
-    onSecondary = BackgroundDeep,
-    tertiary = AccentRed,
+private val LightColors = lightColorScheme(
+    primary = AccentRed,
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFFFDAD6),
+    onPrimaryContainer = Color(0xFF410002),
+    secondary = AccentGold,
+    onSecondary = Color.White,
+    tertiary = InkSecondary,
     onTertiary = Color.White,
     background = BackgroundDeep,
     onBackground = TextPrimary,
-    surface = CardGlass,
+    surface = Color.White,
     onSurface = TextPrimary,
     surfaceVariant = CardSolid,
     onSurfaceVariant = TextMuted,
@@ -30,7 +30,7 @@ fun AlesVPNTheme(
     content: @Composable () -> Unit,
 ) {
     MaterialTheme(
-        colorScheme = DarkColors,
+        colorScheme = LightColors,
         typography = AlesTypography,
         content = content,
     )

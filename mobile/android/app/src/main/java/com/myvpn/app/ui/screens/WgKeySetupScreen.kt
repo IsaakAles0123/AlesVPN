@@ -48,6 +48,7 @@ import com.myvpn.app.ui.components.DojangBackground
 import com.myvpn.app.ui.theme.AccentGold
 import com.myvpn.app.ui.theme.AccentRed
 import com.myvpn.app.ui.theme.TextMuted
+import com.myvpn.app.ui.theme.TextPrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,7 +75,7 @@ fun WgKeySetupScreen(
                     title = {
                         Text(
                             "Ключ доступа",
-                            color = Color.White,
+                            color = TextPrimary,
                             style = MaterialTheme.typography.titleLarge,
                         )
                     },
@@ -83,7 +84,7 @@ fun WgKeySetupScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Назад",
-                                tint = Color.White,
+                                tint = TextPrimary,
                             )
                         }
                     },
