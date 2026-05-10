@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
@@ -53,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import com.myvpn.app.R
 import com.myvpn.app.ui.theme.AlesSpacing
 import com.myvpn.app.ui.theme.AccentGold
+import com.myvpn.app.ui.theme.AccentRed
 import com.wireguard.android.backend.Tunnel
 import kotlinx.coroutines.launch
 
@@ -239,7 +241,7 @@ fun VerticalSwipeVpnSlider(
                                 .width(32.dp)
                                 .height(3.dp)
                                 .clip(RoundedCornerShape(2.dp))
-                                .background(if (showConnect) AccentGold else accentGreen),
+                                .background(if (showConnect) AccentRed else accentGreen),
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -258,6 +260,7 @@ fun VerticalSwipeVpnSlider(
                             painter = painterResource(R.drawable.ic_connect_fist),
                             contentDescription = stringResource(R.string.dashboard_connect_fist_cd),
                             contentScale = ContentScale.Fit,
+                            colorFilter = ColorFilter.tint(Color(0xFFF2F2F2)),
                             modifier = Modifier.size(34.dp),
                         )
                     }

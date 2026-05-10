@@ -2,6 +2,7 @@ package com.myvpn.app.ui.components.dashboard
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,8 +31,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -42,7 +43,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.myvpn.app.R
 import com.myvpn.app.ui.theme.AccentGold
-import com.myvpn.app.ui.theme.AccentGoldDim
+import com.myvpn.app.ui.theme.AccentRed
 import com.myvpn.app.ui.theme.AlesSpacing
 import com.myvpn.app.ui.theme.TextMuted
 import com.myvpn.app.ui.theme.TextPrimary
@@ -62,23 +63,23 @@ fun RefTopBar(
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(24.dp))
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(
-                            AccentGoldDim.copy(alpha = 0.75f),
-                            Color(0xFF3D3832),
-                        ),
-                    ),
-                )
+                .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(24.dp))
+                .background(Color(0xFF101012), RoundedCornerShape(24.dp))
                 .clickable(onClick = onPlusClick)
-                .padding(horizontal = 14.dp, vertical = 8.dp),
+                .padding(start = 10.dp, end = 14.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            Box(
+                modifier = Modifier
+                    .size(width = 3.dp, height = 18.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(AccentRed),
+            )
             Icon(
                 imageVector = Icons.Rounded.WorkspacePremium,
                 contentDescription = null,
-                tint = Color(0xFFD4C4A8),
+                tint = AccentGold,
                 modifier = Modifier.size(18.dp),
             )
             Text(
@@ -116,6 +117,11 @@ fun ConnectionStatusBlock(
         } else {
             null
         }
+    val statusColor = when (tunnelState) {
+        Tunnel.State.UP -> AccentRed
+        Tunnel.State.TOGGLE -> TextMuted
+        Tunnel.State.DOWN -> TextPrimary
+    }
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -123,7 +129,7 @@ fun ConnectionStatusBlock(
         Text(
             text = status,
             style = MaterialTheme.typography.titleSmall,
-            color = TextPrimary,
+            color = statusColor,
         )
         if (addressLine != null) {
             Spacer(modifier = Modifier.height(2.dp))
@@ -175,6 +181,7 @@ fun DobokFistCluster(
                 painter = painterResource(R.drawable.ic_connect_fist),
                 contentDescription = stringResource(R.string.dashboard_connect_fist_cd),
                 contentScale = ContentScale.Fit,
+                colorFilter = ColorFilter.tint(Color(0xFFF2F2F2)),
                 modifier = Modifier
                     .size(102.dp)
                     .alpha(if (enabled) 1f else 0.45f)
@@ -223,7 +230,7 @@ fun VpnRefDashboard(
                 Text(
                     text = stringResource(R.string.dashboard_no_key_hint),
                     style = MaterialTheme.typography.bodySmall,
-                    color = AccentGold.copy(alpha = 0.88f),
+                    color = AccentRed.copy(alpha = 0.9f),
                     textAlign = TextAlign.Center,
                 )
             }

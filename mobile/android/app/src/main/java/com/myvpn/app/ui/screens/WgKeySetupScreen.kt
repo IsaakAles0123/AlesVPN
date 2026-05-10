@@ -46,6 +46,7 @@ import android.widget.Toast
 import com.myvpn.app.data.VpnSettingsRepository
 import com.myvpn.app.ui.components.DojangBackground
 import com.myvpn.app.ui.theme.AccentGold
+import com.myvpn.app.ui.theme.AccentRed
 import com.myvpn.app.ui.theme.TextMuted
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -140,7 +141,10 @@ fun WgKeySetupScreen(
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentGold.copy(alpha = 0.25f)),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AccentGold.copy(alpha = 0.1f),
+                        contentColor = AccentGold,
+                    ),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -198,9 +202,12 @@ fun WgKeySetupScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp, bottom = 24.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentGold),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AccentRed,
+                        contentColor = Color.White,
+                    ),
                 ) {
-                    Text("Сохранить", color = Color.Black)
+                    Text("Сохранить")
                 }
             }
         }

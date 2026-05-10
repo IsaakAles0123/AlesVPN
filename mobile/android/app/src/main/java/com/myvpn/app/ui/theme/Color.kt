@@ -3,20 +3,21 @@ package com.myvpn.app.ui.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * Спокойная палитра «доджанг»: тёплый тёмно-серый без чистого чёрника,
- * приглушённый каменно-золотой акцент (не яркая горчица — меньше усталости глаз).
+ * Ч/Б «доджанг»: почти чёрный фон, светлый текст и светлые акценты.
+ * [AccentGold] — по смыслу «белый/светлый UI-акцент» (имя сохранено, чтобы не ломать импорты).
  */
-val BackgroundDeep = Color(0xFF1E1F24)
-val BackgroundMid = Color(0xFF25262C)
+val BackgroundDeep = Color(0xFF050506)
+val BackgroundMid = Color(0xFF0C0C0E)
 
-/** Акцент действий и иконок — низкая насыщенность. */
-val AccentGold = Color(0xFFB5A994)
-val AccentGoldDim = Color(0xFF6D6558)
+val AccentGold = Color(0xFFF0F0F2)
+val AccentGoldDim = Color(0xFF2C2C30)
 
-val InkSecondary = Color(0xFF94969E)
+/** Красный акцент (флаг WT, дисциплина) — только точечно, не заливать весь экран. */
+val AccentRed = Color(0xFFC23B3B)
 
-val TextPrimary = Color(0xFFEEEDEA)
-val TextMuted = Color(0xFF9B9CA3)
+val InkSecondary = Color(0xFF8E8E93)
+val TextPrimary = Color(0xFFF5F5F7)
+val TextMuted = Color(0xFF8E8E93)
 
-val CardGlass = Color(0x332A2B32)
-val CardSolid = Color(0xFF2A2B32)
+val CardGlass = Color(0x2218181A)
+val CardSolid = Color(0xFF141416)
