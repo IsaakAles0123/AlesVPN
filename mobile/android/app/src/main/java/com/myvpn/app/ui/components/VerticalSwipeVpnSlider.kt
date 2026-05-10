@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
@@ -54,7 +55,7 @@ import com.myvpn.app.R
 import com.myvpn.app.ui.theme.AlesSpacing
 import com.myvpn.app.ui.theme.AccentGold
 import com.myvpn.app.ui.theme.AccentRed
-import com.myvpn.app.ui.theme.TextPrimary
+import com.myvpn.app.ui.theme.TextMuted
 import com.wireguard.android.backend.Tunnel
 import kotlinx.coroutines.launch
 
@@ -96,7 +97,7 @@ fun VerticalSwipeVpnSlider(
                 "Нажмите STOP, чтобы отключить"
             },
             style = MaterialTheme.typography.bodySmall,
-            color = TextPrimary.copy(alpha = 0.75f),
+            color = TextMuted,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = AlesSpacing.small),
         )
@@ -123,7 +124,7 @@ fun VerticalSwipeVpnSlider(
                     .fillMaxSize()
                     .shadow(16.dp, RoundedCornerShape(trackWidth / 2), clip = false)
                     .clip(RoundedCornerShape(trackWidth / 2))
-                    .background(Color(0xFFE8E9EF)),
+                    .background(Color(0xFF121318)),
             ) {
                 Canvas(Modifier.fillMaxSize()) {
                     val step = 10.dp.toPx()
@@ -132,7 +133,7 @@ fun VerticalSwipeVpnSlider(
                         var x = 0f
                         while (x < size.width) {
                             drawCircle(
-                                color = Color.Black.copy(alpha = 0.06f),
+                                color = Color.White.copy(alpha = 0.04f),
                                 radius = 1.2.dp.toPx(),
                                 center = Offset(x, y),
                             )
@@ -145,7 +146,7 @@ fun VerticalSwipeVpnSlider(
                     for (i in 0..4) {
                         val r = 12f + i * 10f
                         drawArc(
-                            color = AccentGold.copy(alpha = 0.18f - i * 0.02f),
+                            color = AccentGold.copy(alpha = 0.12f - i * 0.015f),
                             startAngle = 200f,
                             sweepAngle = 140f,
                             useCenter = false,
@@ -164,8 +165,8 @@ fun VerticalSwipeVpnSlider(
                             .padding(top = 6.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Text("▲", color = TextPrimary, fontSize = 12.sp)
-                        Text("▲", color = TextPrimary.copy(alpha = 0.45f), fontSize = 11.sp, modifier = Modifier.offset(y = (-4).dp))
+                        Text("▲", color = Color.White, fontSize = 12.sp)
+                        Text("▲", color = Color(0xFF5C6378), fontSize = 11.sp, modifier = Modifier.offset(y = (-4).dp))
                     }
                 }
 
@@ -177,7 +178,7 @@ fun VerticalSwipeVpnSlider(
                         .clip(RoundedCornerShape(22.dp))
                         .background(
                             Brush.verticalGradient(
-                                listOf(Color(0xFFF5F5F7), Color(0xFFECECEF)),
+                                listOf(Color(0xFF0A0B10), Color(0xFF1B1C24)),
                             ),
                         ),
                 )
@@ -196,7 +197,7 @@ fun VerticalSwipeVpnSlider(
                         .clip(RoundedCornerShape(handleHeight / 2))
                         .background(
                             Brush.verticalGradient(
-                                listOf(Color(0xFFFFFFFF), Color(0xFFF0F0F2), Color(0xFFE5E5EA)),
+                                listOf(Color(0xFF6D7380), Color(0xFF3E424B), Color(0xFF2A2D35)),
                             ),
                         )
                         .then(
@@ -246,7 +247,7 @@ fun VerticalSwipeVpnSlider(
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = label,
-                            color = TextPrimary,
+                            color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp,
                             letterSpacing = 0.sp,
@@ -260,6 +261,7 @@ fun VerticalSwipeVpnSlider(
                             painter = painterResource(R.drawable.ic_connect_fist),
                             contentDescription = stringResource(R.string.dashboard_connect_fist_cd),
                             contentScale = ContentScale.Fit,
+                            colorFilter = ColorFilter.tint(Color(0xFFF2F2F2)),
                             modifier = Modifier.size(34.dp),
                         )
                     }
@@ -270,7 +272,7 @@ fun VerticalSwipeVpnSlider(
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(Color.White.copy(alpha = 0.55f)),
+                        .background(Color.Black.copy(alpha = 0.35f)),
                 )
             }
         }

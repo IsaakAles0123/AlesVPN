@@ -76,8 +76,8 @@ fun DotMatrixSessionTimer(
     tunnelState: Tunnel.State,
     sessionStartMs: Long?,
     modifier: Modifier = Modifier,
-    primaryColor: Color = Color(0xFF0A0A0A),
-    secondaryColor: Color = Color(0xFF636366),
+    primaryColor: Color = Color(0xFFF5F5F5),
+    secondaryColor: Color = Color(0xFF6B6B75),
     /** Когда сессии нет — вместо «00:00» (например em dash). */
     idleText: String = "—",
 ) {
@@ -94,9 +94,9 @@ fun DotMatrixSessionTimer(
             textAlign = TextAlign.Center,
             style = TextStyle(
                 shadow = Shadow(
-                    color = Color(0x1A000000),
+                    color = Color(0xFF0D0D12).copy(alpha = 0.9f),
                     offset = androidx.compose.ui.geometry.Offset(0f, 1f),
-                    blurRadius = 2f,
+                    blurRadius = 6f,
                 ),
             ),
         )
