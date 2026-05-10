@@ -20,8 +20,12 @@ import kotlin.random.Random
 
 private data class SilPlacement(val left: Dp, val top: Dp, val size: Dp, val drawable: Int)
 
-/** Доли экрана [0,1]: зоны не заходят в центр (добок / кулак). */
+/** Доли экрана [0,1]. Центр под добок не используем. */
 private data class ZoneF(val left: Float, val top: Float, val right: Float, val bottom: Float)
+
+private enum class ZoneKind { CornerCell, SideStrip, SlimGap }
+
+private data class TaggedZone(val z: ZoneF, val kind: ZoneKind)
 
 private val silhouettePool = listOf(
     R.drawable.dojang_bg_yop_chagi,
@@ -34,43 +38,65 @@ private val silhouettePool = listOf(
     R.drawable.dojang_bg_roundhouse,
 )
 
-/**
- * Восемь раздельных зон + случайное смещение внутри каждой.
- * Углы — крупные (~до ~42% меньшей стороны экрана), боковые полосы — поменьше, но заметнее старой сетки.
- */
+private fun allZones(): List<TaggedZone> = listOf(
+    TaggedZone(ZoneF(0.02f, 0.02f, 0.30f, 0.29f), ZoneKind.CornerCell),
+    TaggedZone(ZoneF(0.30f, 0.02f, 0.46f, 0.29f), ZoneKind.CornerCell),
+    TaggedZone(ZoneF(0.56f, 0.02f, 0.72f, 0.29f), ZoneKind.CornerCell),
+    TaggedZone(ZoneF(0.72f, 0.02f, 0.98f, 0.29f), ZoneKind.CornerCell),
+    TaggedZone(ZoneF(0.02f, 0.73f, 0.30f, 0.98f), ZoneKind.CornerCell),
+    TaggedZone(ZoneF(0.30f, 0.73f, 0.46f, 0.98f), ZoneKind.CornerCell),
+    TaggedZone(ZoneF(0.56f, 0.73f, 0.72f, 0.98f), ZoneKind.CornerCell),
+    TaggedZone(ZoneF(0.72f, 0.73f, 0.98f, 0.98f), ZoneKind.CornerCell),
+    TaggedZone(ZoneF(0.02f, 0.30f, 0.215f, 0.52f), ZoneKind.SideStrip),
+    TaggedZone(ZoneF(0.785f, 0.30f, 0.98f, 0.52f), ZoneKind.SideStrip),
+    TaggedZone(ZoneF(0.02f, 0.54f, 0.215f, 0.72f), ZoneKind.SideStrip),
+    TaggedZone(ZoneF(0.785f, 0.54f, 0.98f, 0.72f), ZoneKind.SideStrip),
+    TaggedZone(ZoneF(0.44f, 0.02f, 0.56f, 0.29f), ZoneKind.SlimGap),
+    TaggedZone(ZoneF(0.44f, 0.73f, 0.56f, 0.98f), ZoneKind.SlimGap),
+)
+
 private fun jitteredZonePlacements(w: Dp, h: Dp, seed: Long): List<SilPlacement> {
     val wv = w.value
     val hv = h.value
     if (!wv.isFinite() || !hv.isFinite() || wv <= 0f || hv <= 0f) return emptyList()
 
     val rng = Random(seed)
-    val order = silhouettePool.shuffled(rng)
+    val zones = allZones()
+    val pool = buildList {
+        addAll(silhouettePool)
+        addAll(silhouettePool.take(6))
+    }.take(zones.size)
+    val order = pool.shuffled(rng)
 
-    val zones = listOf(
-        ZoneF(0.02f, 0.02f, 0.44f, 0.28f),
-        ZoneF(0.56f, 0.02f, 0.98f, 0.28f),
-        ZoneF(0.02f, 0.74f, 0.44f, 0.98f),
-        ZoneF(0.56f, 0.74f, 0.98f, 0.98f),
-        ZoneF(0.02f, 0.30f, 0.20f, 0.52f),
-        ZoneF(0.80f, 0.30f, 0.98f, 0.52f),
-        ZoneF(0.02f, 0.54f, 0.20f, 0.72f),
-        ZoneF(0.80f, 0.54f, 0.98f, 0.72f),
-    )
+    val minSide = min(wv, hv)
+    val capCorner = minSide * 0.52f
+    val capSide = minSide * 0.30f
 
-    val maxSilCap = min(wv, hv) * 0.42f
-    val bigBoost = 1.08f
-
-    return zones.mapIndexed { i, z ->
+    return zones.mapIndexed { i, tz ->
+        val z = tz.z
         val zl = z.left * wv
         val zt = z.top * hv
         val zr = z.right * wv
         val zb = z.bottom * hv
-        val zw = (zr - zl).coerceAtLeast(16f)
-        val zh = (zb - zt).coerceAtLeast(16f)
-        val isBigCorner = i < 4
-        val fill = if (isBigCorner) 0.92f * bigBoost else 0.94f
-        var silF = minOf(zw, zh) * fill - 10f
-        silF = silF.coerceIn(52f, maxSilCap)
+        val zw = (zr - zl).coerceAtLeast(12f)
+        val zh = (zb - zt).coerceAtLeast(12f)
+        val room = minOf(zw, zh)
+
+        val silF = when (tz.kind) {
+            ZoneKind.CornerCell -> {
+                val s = room * 0.97f - 6f
+                s.coerceIn(92f, capCorner).coerceAtMost(room - 6f)
+            }
+            ZoneKind.SideStrip -> {
+                val s = room * 0.98f - 4f
+                s.coerceIn(82f, capSide).coerceAtMost(room - 4f)
+            }
+            ZoneKind.SlimGap -> {
+                val s = room * 0.96f - 4f
+                s.coerceIn(52f, min(capCorner * 0.48f, room - 5f)).coerceAtMost(room - 4f)
+            }
+        }
+
         val spanL = (zw - silF).coerceAtLeast(0f)
         val spanT = (zh - silF).coerceAtLeast(0f)
         val left = zl + rng.nextFloat() * spanL
@@ -88,7 +114,7 @@ fun DojangSilhouetteBackdrop(modifier: Modifier = Modifier) {
             val seed = w.value.toBits().toLong() xor h.value.toBits().toLong() xor 0xD06A116EEEL
             jitteredZonePlacements(w, h, seed)
         }
-        val a = 0.28f
+        val a = 0.4f
         placements.forEach { p ->
             Image(
                 painter = painterResource(p.drawable),
