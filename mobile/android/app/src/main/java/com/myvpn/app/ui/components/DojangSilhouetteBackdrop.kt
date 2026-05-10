@@ -24,7 +24,7 @@ private data class SilPlacement(val left: Dp, val top: Dp, val size: Dp, val dra
 /** Доли экрана [0,1]. Центр под добок не используем. */
 private data class ZoneF(val left: Float, val top: Float, val right: Float, val bottom: Float)
 
-private enum class ZoneKind { CornerCell, SideStrip, SlimGap }
+private enum class ZoneKind { CornerCell, SideStrip, SlimGap, TimerBand }
 
 private data class TaggedZone(val z: ZoneF, val kind: ZoneKind)
 
@@ -55,10 +55,12 @@ private fun allZones(): List<TaggedZone> = listOf(
     TaggedZone(ZoneF(0.30f, 0.73f, 0.46f, 0.98f), ZoneKind.CornerCell),
     TaggedZone(ZoneF(0.56f, 0.73f, 0.72f, 0.98f), ZoneKind.CornerCell),
     TaggedZone(ZoneF(0.72f, 0.73f, 0.98f, 0.98f), ZoneKind.CornerCell),
-    TaggedZone(ZoneF(0.02f, 0.30f, 0.215f, 0.52f), ZoneKind.SideStrip),
-    TaggedZone(ZoneF(0.785f, 0.30f, 0.98f, 0.52f), ZoneKind.SideStrip),
-    TaggedZone(ZoneF(0.02f, 0.54f, 0.215f, 0.72f), ZoneKind.SideStrip),
-    TaggedZone(ZoneF(0.785f, 0.54f, 0.98f, 0.72f), ZoneKind.SideStrip),
+    TaggedZone(ZoneF(0.02f, 0.31f, 0.28f, 0.43f), ZoneKind.TimerBand),
+    TaggedZone(ZoneF(0.02f, 0.43f, 0.28f, 0.49f), ZoneKind.TimerBand),
+    TaggedZone(ZoneF(0.72f, 0.31f, 0.98f, 0.43f), ZoneKind.TimerBand),
+    TaggedZone(ZoneF(0.72f, 0.43f, 0.98f, 0.49f), ZoneKind.TimerBand),
+    TaggedZone(ZoneF(0.02f, 0.52f, 0.215f, 0.72f), ZoneKind.SideStrip),
+    TaggedZone(ZoneF(0.785f, 0.52f, 0.98f, 0.72f), ZoneKind.SideStrip),
     TaggedZone(ZoneF(0.44f, 0.02f, 0.56f, 0.29f), ZoneKind.SlimGap),
     TaggedZone(ZoneF(0.44f, 0.73f, 0.56f, 0.98f), ZoneKind.SlimGap),
 )
@@ -72,13 +74,14 @@ private fun jitteredZonePlacements(w: Dp, h: Dp, seed: Long): List<SilPlacement>
     val zones = allZones()
     val pool = buildList {
         addAll(silhouettePool)
-        addAll(silhouettePool.take(6))
+        addAll(silhouettePool)
     }.take(zones.size)
     val order = pool.shuffled(rng)
 
     val minSide = min(wv, hv)
     val capCorner = minSide * 0.52f
     val capSide = minSide * 0.30f
+    val capTimer = minSide * 0.38f
 
     return zones.mapIndexed { i, tz ->
         val z = tz.z
@@ -106,6 +109,11 @@ private fun jitteredZonePlacements(w: Dp, h: Dp, seed: Long): List<SilPlacement>
                 val maxFit = min(min(capCorner * 0.48f, room - 5f), room - 4f)
                 clampSil(raw, 52f, maxFit)
             }
+            ZoneKind.TimerBand -> {
+                val raw = room * 0.97f - 4f
+                val maxFit = min(min(capTimer, capCorner * 0.5f), room - 4f)
+                clampSil(raw, 88f, maxFit)
+            }
         }.let { s -> if (s.isFinite() && s > 0f) s else 24f }
 
         val spanL = (zw - silF).coerceAtLeast(0f)
@@ -125,7 +133,7 @@ fun DojangSilhouetteBackdrop(modifier: Modifier = Modifier) {
             val seed = w.value.toBits().toLong() xor h.value.toBits().toLong() xor 0xD06A116EEEL
             jitteredZonePlacements(w, h, seed)
         }
-        val a = 0.4f
+        val a = 0.44f
         placements.forEach { p ->
             Image(
                 painter = painterResource(p.drawable),
