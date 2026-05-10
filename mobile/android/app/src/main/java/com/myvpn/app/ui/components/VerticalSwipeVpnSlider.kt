@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -255,20 +254,12 @@ fun VerticalSwipeVpnSlider(
                             textAlign = TextAlign.Center,
                         )
                         Spacer(modifier = Modifier.height(4.dp))
-                        Box(
-                            modifier = Modifier
-                                .size(30.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF22252E)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Image(
-                                painter = painterResource(R.drawable.ic_connect_fist),
-                                contentDescription = stringResource(R.string.dashboard_connect_fist_cd),
-                                contentScale = ContentScale.Fit,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
+                        Image(
+                            painter = painterResource(R.drawable.ic_connect_fist),
+                            contentDescription = stringResource(R.string.dashboard_connect_fist_cd),
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.size(34.dp),
+                        )
                     }
                 }
             }
