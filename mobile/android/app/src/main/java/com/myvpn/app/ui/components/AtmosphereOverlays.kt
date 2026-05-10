@@ -6,7 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import com.myvpn.app.ui.theme.NeonPurple
+import com.myvpn.app.ui.theme.AccentGold
 
 /**
  * Виньет: к центру экрана чуть светлее, к углам темнее.
@@ -35,7 +35,7 @@ fun ScreenVignetteOverlay(modifier: Modifier = Modifier) {
 }
 
 /**
- * Мягкое свечение снизу (туманность у «горизонта» планеты).
+ * Мягкое свечение снизу (не используется в [DojangBackground]; оставлено для совместимости).
  */
 @Composable
 fun NebulaBottomGlowOverlay(modifier: Modifier = Modifier) {
@@ -48,7 +48,7 @@ fun NebulaBottomGlowOverlay(modifier: Modifier = Modifier) {
                 colors = listOf(
                     Color(0x00000000),
                     Color(0x1A1A0A1E),
-                    NeonPurple.copy(alpha = 0.2f),
+                    AccentGold.copy(alpha = 0.12f),
                     Color(0x2D3D1E4A),
                 ),
                 center = Offset(w * 0.5f, h * 0.99f),

@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.unit.dp
-import com.myvpn.app.ui.theme.NeonPurple
+import com.myvpn.app.ui.theme.AccentGold
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
@@ -32,7 +32,7 @@ private fun normalizeLonDeg(deg: Float): Float {
 fun WireframeGlobeBackdrop(
     modifier: Modifier = Modifier,
 ) {
-    // Высоту задаёт родитель (NeonBackground). Не добавлять сюда .height(...) — иначе внешний размер игнорируется.
+    // Высоту задаёт родитель. Не добавлять сюда .height(...) — иначе внешний размер игнорируется.
     Canvas(
         modifier = modifier.fillMaxWidth(),
     ) {
@@ -71,8 +71,8 @@ fun WireframeGlobeBackdrop(
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(
-                    NeonPurple.copy(alpha = 0.38f),
-                    NeonPurple.copy(alpha = 0.1f),
+                    AccentGold.copy(alpha = 0.38f),
+                    AccentGold.copy(alpha = 0.1f),
                     Color.Transparent,
                 ),
                 center = Offset(cx, cy - r * 0.08f),
@@ -124,7 +124,7 @@ fun WireframeGlobeBackdrop(
                 val tint = if (dustRandom.nextBoolean()) {
                     Color(0xFFE8E0FF).copy(alpha = a)
                 } else {
-                    NeonPurple.copy(alpha = a * 1.1f)
+                    AccentGold.copy(alpha = a * 1.1f)
                 }
                 drawCircle(color = tint, radius = br, center = p)
             }
@@ -211,7 +211,7 @@ fun WireframeGlobeBackdrop(
             style = Stroke(width = 1.6.dp.toPx()),
         )
         drawCircle(
-            color = NeonPurple.copy(alpha = 0.12f),
+            color = AccentGold.copy(alpha = 0.12f),
             radius = r + 1.2.dp.toPx(),
             center = Offset(cx, cy),
             style = Stroke(width = 0.8.dp.toPx()),

@@ -49,10 +49,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.myvpn.app.R
+import com.myvpn.app.ui.theme.AccentGold
+import com.myvpn.app.ui.theme.AccentGoldDim
 import com.myvpn.app.ui.theme.AlesSpacing
-import com.myvpn.app.ui.theme.NeonCyan
-import com.myvpn.app.ui.theme.NeonPurple
-import com.myvpn.app.ui.theme.NeonPurpleDim
+import com.myvpn.app.ui.theme.BackgroundDeep
+import com.myvpn.app.ui.theme.CardSolid
 import com.myvpn.app.ui.theme.TextMuted
 import com.wireguard.android.backend.Tunnel
 
@@ -86,7 +87,10 @@ fun RefTopBar(
                 .clip(RoundedCornerShape(24.dp))
                 .background(
                     Brush.horizontalGradient(
-                        listOf(NeonPurpleDim.copy(alpha = 0.9f), Color(0xFF3D2560)),
+                        listOf(
+                            AccentGoldDim.copy(alpha = 0.95f),
+                            Color(0xFF2A2410),
+                        ),
                     ),
                 )
                 .clickable(onClick = onPlusClick)
@@ -111,7 +115,7 @@ fun RefTopBar(
             Icon(
                 imageVector = Icons.Rounded.Settings,
                 contentDescription = "Ключ доступа",
-                tint = NeonCyan,
+                tint = AccentGold,
             )
         }
     }
@@ -163,7 +167,7 @@ fun ServerLocationPill(
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(Color(0xFF1E1F2A))
+            .background(CardSolid)
             .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -194,7 +198,7 @@ fun ServerLocationPill(
 }
 
 @Composable
-fun GlobePowerCluster(
+fun DobokFistCluster(
     tunnelState: Tunnel.State,
     onPowerClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -260,7 +264,7 @@ fun ServerCarousel(
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        Color(0xFF050508).copy(alpha = 0.55f),
+                        BackgroundDeep.copy(alpha = 0.72f),
                     ),
                 ),
             )
@@ -283,7 +287,7 @@ fun ServerCarousel(
                     .clickable { onSelect(index) },
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (selected) NeonPurple.copy(alpha = 0.95f) else Color(0xFF14151C),
+                    containerColor = if (selected) AccentGold.copy(alpha = 0.92f) else CardSolid,
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 8.dp else 2.dp),
             ) {
@@ -366,7 +370,7 @@ fun VpnRefDashboard(
                 Text(
                     text = stringResource(R.string.dashboard_no_key_hint),
                     style = MaterialTheme.typography.bodySmall,
-                    color = NeonCyan.copy(alpha = 0.85f),
+                    color = AccentGold.copy(alpha = 0.9f),
                     textAlign = TextAlign.Center,
                 )
             }
@@ -381,7 +385,7 @@ fun VpnRefDashboard(
                 idleText = timerIdle,
             )
         }
-        GlobePowerCluster(
+        DobokFistCluster(
             tunnelState = tunnelState,
             onPowerClick = onPowerClick,
             modifier = Modifier

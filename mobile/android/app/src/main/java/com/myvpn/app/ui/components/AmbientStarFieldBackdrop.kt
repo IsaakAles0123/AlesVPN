@@ -11,7 +11,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import com.myvpn.app.ui.theme.NeonPurple
+import com.myvpn.app.ui.theme.AccentGold
 import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.random.Random
@@ -71,7 +71,7 @@ fun AmbientStarFieldBackdrop(modifier: Modifier = Modifier) {
                 val c = if (starRnd.nextBoolean()) {
                     Color.White.copy(alpha = a)
                 } else {
-                    NeonPurple.copy(alpha = a * 0.95f)
+                    AccentGold.copy(alpha = a * 0.95f)
                 }
                 drawCircle(color = c, radius = rad, center = p)
             }
