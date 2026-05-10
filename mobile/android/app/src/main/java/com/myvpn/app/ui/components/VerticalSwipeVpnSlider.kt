@@ -3,6 +3,7 @@ package com.myvpn.app.ui.components
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -20,9 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.PowerSettingsNew
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
@@ -43,13 +41,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.myvpn.app.R
 import com.myvpn.app.ui.theme.AlesSpacing
 import com.myvpn.app.ui.theme.NeonCyan
 import com.wireguard.android.backend.Tunnel
@@ -260,11 +262,11 @@ fun VerticalSwipeVpnSlider(
                                 .background(Color(0xFF22252E)),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Icon(
-                                imageVector = Icons.Rounded.PowerSettingsNew,
-                                contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.92f),
-                                modifier = Modifier.size(18.dp),
+                            Image(
+                                painter = painterResource(R.drawable.ic_connect_fist),
+                                contentDescription = stringResource(R.string.dashboard_connect_fist_cd),
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.size(20.dp),
                             )
                         }
                     }
