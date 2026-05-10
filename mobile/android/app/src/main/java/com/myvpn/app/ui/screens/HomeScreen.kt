@@ -13,10 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -25,7 +21,6 @@ import com.myvpn.app.R
 import com.myvpn.app.data.VpnSettingsRepository
 import com.myvpn.app.ui.components.DojangBackground
 import com.myvpn.app.ui.components.dashboard.VpnRefDashboard
-import com.myvpn.app.ui.components.dashboard.rememberMockServers
 import com.wireguard.android.backend.Tunnel
 
 @Composable
@@ -38,8 +33,6 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
 ) {
     val ctx = LocalContext.current
-    val servers = rememberMockServers()
-    var selectedServerIndex by remember { mutableIntStateOf(0) }
     val isConfigured = wgSettingsRepository.isConfigured()
     val userVpnAddr = if (isConfigured) wgSettingsRepository.loadAddress().trim() else ""
 
@@ -55,9 +48,6 @@ fun HomeScreen(
             VpnRefDashboard(
                 tunnelState = viewModel.tunnelState,
                 sessionStartMs = viewModel.vpnSessionStartMs,
-                servers = servers,
-                selectedIndex = selectedServerIndex,
-                onSelectServer = { selectedServerIndex = it },
                 onKeySetupClick = onOpenKeySetup,
                 onPlusClick = {
                     openPurchaseUrl(ctx)

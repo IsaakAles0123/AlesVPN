@@ -24,8 +24,8 @@ fun ScreenVignetteOverlay(modifier: Modifier = Modifier) {
             brush = Brush.radialGradient(
                 colors = listOf(
                     Color(0x00000000),
-                    Color(0x1805050C),
-                    Color(0x5505050E),
+                    Color(0x101E1F24),
+                    Color(0x381E1F24),
                 ),
                 center = Offset(cx, cy),
                 radius = r,
