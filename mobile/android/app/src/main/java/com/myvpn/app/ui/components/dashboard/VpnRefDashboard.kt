@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -201,46 +201,48 @@ fun GlobePowerCluster(
 ) {
     val busy = tunnelState == Tunnel.State.TOGGLE
     val enabled = !busy
+    val dobokRes = if (tunnelState == Tunnel.State.UP) {
+        R.drawable.dobok_black_belt
+    } else {
+        R.drawable.dobok_white_belt
+    }
+    val dobokCd = when (tunnelState) {
+        Tunnel.State.UP -> stringResource(R.string.dashboard_dobok_vpn_on_cd)
+        Tunnel.State.TOGGLE -> stringResource(R.string.dashboard_status_connecting)
+        Tunnel.State.DOWN -> stringResource(R.string.dashboard_dobok_vpn_off_cd)
+    }
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(272.dp),
+            .height(400.dp),
         contentAlignment = Alignment.Center,
     ) {
-        val ringAlphas = listOf(0.14f, 0.10f, 0.06f, 0.04f)
-        ringAlphas.forEachIndexed { i, a ->
-            Box(
+        Column(
+            modifier = Modifier.offset(y = 56.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            Image(
+                painter = painterResource(dobokRes),
+                contentDescription = dobokCd,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(width = 150.dp, height = 172.dp),
+            )
+            Image(
+                painter = painterResource(R.drawable.ic_connect_fist),
+                contentDescription = stringResource(R.string.dashboard_connect_fist_cd),
+                contentScale = ContentScale.Fit,
                 modifier = Modifier
-                    .size((140 + i * 28).dp)
-                    .align(Alignment.Center)
-                    .border(
-                        width = 2.dp,
-                        brush = Brush.sweepGradient(
-                            listOf(
-                                NeonPurple.copy(alpha = a * 2f),
-                                NeonCyan.copy(alpha = a),
-                                NeonPurple.copy(alpha = a * 2f),
-                            ),
-                        ),
-                        shape = CircleShape,
+                    .size(128.dp)
+                    .alpha(if (enabled) 1f else 0.45f)
+                    .clickable(
+                        enabled = enabled,
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = ripple(bounded = false, radius = 64.dp),
+                        onClick = onPowerClick,
                     ),
             )
         }
-        Image(
-            painter = painterResource(R.drawable.ic_connect_fist),
-            contentDescription = stringResource(R.string.dashboard_connect_fist_cd),
-            contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .size(128.dp)
-                .alpha(if (enabled) 1f else 0.45f)
-                .clickable(
-                    enabled = enabled,
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = ripple(bounded = false, radius = 64.dp),
-                    onClick = onPowerClick,
-                ),
-        )
     }
 }
 

@@ -37,4 +37,6 @@
     <string name="dashboard_vpn_address">IP в сети VPN: %1$s</string>
     <string name="dashboard_timer_idle">—</string>
     <string name="dashboard_connect_fist_cd">Подключить или отключить VPN</string>
+    <string name="dashboard_dobok_vpn_on_cd">Добок с чёрным поясом, VPN подключён</string>
+    <string name="dashboard_dobok_vpn_off_cd">Добок с белым поясом, VPN отключён</string>
 </resources>
