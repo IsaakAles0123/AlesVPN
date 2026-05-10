@@ -15,6 +15,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.myvpn.app.R
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
 
@@ -26,6 +27,13 @@ private data class ZoneF(val left: Float, val top: Float, val right: Float, val 
 private enum class ZoneKind { CornerCell, SideStrip, SlimGap }
 
 private data class TaggedZone(val z: ZoneF, val kind: ZoneKind)
+
+/** Безопасный clamp: нижняя граница не выше верхней (иначе Float.coerceIn падает на API). */
+private fun clampSil(raw: Float, minDesired: Float, maxAllowed: Float): Float {
+    val hi = max(1f, maxAllowed)
+    val lo = min(minDesired, hi)
+    return raw.coerceIn(lo, hi)
+}
 
 private val silhouettePool = listOf(
     R.drawable.dojang_bg_yop_chagi,
@@ -84,18 +92,21 @@ private fun jitteredZonePlacements(w: Dp, h: Dp, seed: Long): List<SilPlacement>
 
         val silF = when (tz.kind) {
             ZoneKind.CornerCell -> {
-                val s = room * 0.97f - 6f
-                s.coerceIn(92f, capCorner).coerceAtMost(room - 6f)
+                val raw = room * 0.97f - 6f
+                val maxFit = min(capCorner, room - 6f)
+                clampSil(raw, 92f, maxFit)
             }
             ZoneKind.SideStrip -> {
-                val s = room * 0.98f - 4f
-                s.coerceIn(82f, capSide).coerceAtMost(room - 4f)
+                val raw = room * 0.98f - 4f
+                val maxFit = min(capSide, room - 4f)
+                clampSil(raw, 82f, maxFit)
             }
             ZoneKind.SlimGap -> {
-                val s = room * 0.96f - 4f
-                s.coerceIn(52f, min(capCorner * 0.48f, room - 5f)).coerceAtMost(room - 4f)
+                val raw = room * 0.96f - 4f
+                val maxFit = min(min(capCorner * 0.48f, room - 5f), room - 4f)
+                clampSil(raw, 52f, maxFit)
             }
-        }
+        }.let { s -> if (s.isFinite() && s > 0f) s else 24f }
 
         val spanL = (zw - silF).coerceAtLeast(0f)
         val spanT = (zh - silF).coerceAtLeast(0f)
