@@ -29,6 +29,7 @@ fun DojangBackground(content: @Composable BoxScope.() -> Unit) {
                 ),
             ),
     ) {
+        DojangSilhouetteBackdrop(modifier = Modifier.fillMaxSize())
         ScreenVignetteOverlay(modifier = Modifier.fillMaxSize())
         content()
     }
