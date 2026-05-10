@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.myvpn.app.R
 import kotlin.math.min
-import kotlin.random.Random
 
 private data class SilPlacement(val left: Dp, val top: Dp, val size: Dp, val drawable: Int)
 
@@ -27,6 +26,7 @@ private fun rectsOverlap(a: RectD, b: RectD, gapDp: Float): Boolean {
 }
 
 private fun rectHitsForbidden(r: RectD, w: Float, h: Float): Boolean {
+    if (!w.isFinite() || !h.isFinite() || w <= 0f || h <= 0f) return false
     val fx1 = w * 0.22f
     val fy1 = h * 0.30f
     val fx2 = w * 0.78f
@@ -39,7 +39,7 @@ private fun tryPlaceOnce(
     h: Dp,
     sil: Dp,
     drawables: List<Int>,
-    rng: Random,
+    rng: kotlin.random.Random,
     gapDp: Float,
     maxTriesPerItem: Int,
 ): List<SilPlacement>? {
@@ -47,7 +47,9 @@ private fun tryPlaceOnce(
     val silF = sil.value
     val wF = w.value
     val hF = h.value
-    if (silF <= 0f || wF - silF <= 2 * pad || hF - silF <= 2 * pad) return null
+    if (!silF.isFinite() || !wF.isFinite() || !hF.isFinite()) return null
+    if (silF <= 0f || wF <= 0f || hF <= 0f) return null
+    if (wF - silF <= 2f * pad || hF - silF <= 2f * pad) return null
 
     val placed = mutableListOf<RectD>()
     val out = mutableListOf<SilPlacement>()
@@ -56,8 +58,11 @@ private fun tryPlaceOnce(
     for (i in shuffled.indices) {
         var placedOne = false
         repeat(maxTriesPerItem) {
-            val l = pad + rng.nextFloat() * (wF - silF - 2f * pad)
-            val t = pad + rng.nextFloat() * (hF - silF - 2f * pad)
+            val spanW = wF - silF - 2f * pad
+            val spanH = hF - silF - 2f * pad
+            if (spanW <= 0f || spanH <= 0f) return@repeat
+            val l = pad + rng.nextFloat() * spanW
+            val t = pad + rng.nextFloat() * spanH
             val r = RectD(l, t, l + silF, t + silF)
             if (rectHitsForbidden(r, wF, hF)) return@repeat
             if (placed.any { rectsOverlap(r, it, gapDp) }) return@repeat
@@ -71,13 +76,11 @@ private fun tryPlaceOnce(
     return out
 }
 
-private fun computePlacements(
-    w: Dp,
-    h: Dp,
-    gridSil: Dp,
-    targetLarge: Dp,
-    seed: Long,
-): List<SilPlacement> {
+private fun fallbackGridPlacements(w: Dp, h: Dp, gridSil: Dp, targetLarge: Dp): List<SilPlacement> {
+    val cw = w / 3f
+    val ch = h / 3f
+    val cap = minOf(w, h) * 0.42f
+    val sil = minOf(targetLarge, minOf(gridSil * 2.2f, minOf(cw, ch) * 0.90f), cap).coerceAtLeast(64.dp)
     val pool = listOf(
         R.drawable.dojang_bg_yop_chagi,
         R.drawable.dojang_bg_roundhouse,
@@ -88,29 +91,74 @@ private fun computePlacements(
         R.drawable.dojang_bg_yop_chagi,
         R.drawable.dojang_bg_roundhouse,
     )
-    val minSil = maxOf(88.dp, gridSil * 0.82f)
-    val steps = 22
-    val gap = 12f
+    val slots = listOf(
+        Triple(0, 0, pool[0]),
+        Triple(1, 0, pool[1]),
+        Triple(2, 0, pool[2]),
+        Triple(0, 1, pool[3]),
+        Triple(2, 1, pool[4]),
+        Triple(0, 2, pool[5]),
+        Triple(1, 2, pool[6]),
+        Triple(2, 2, pool[7]),
+    )
+    return slots.map { (col, row, dr) ->
+        val x = cw * col + (cw - sil) / 2
+        val y = ch * row + (ch - sil) / 2
+        SilPlacement(x, y, sil, dr)
+    }
+}
+
+private fun computePlacements(
+    w: Dp,
+    h: Dp,
+    gridSil: Dp,
+    targetLarge: Dp,
+    seed: Long,
+): List<SilPlacement> {
+    val wF = w.value
+    val hF = h.value
+    if (!wF.isFinite() || !hF.isFinite() || wF <= 0f || hF <= 0f) {
+        return fallbackGridPlacements(w, h, gridSil, targetLarge)
+    }
+
+    val cap = minOf(w, h) * 0.44f
+    val minSilWanted = maxOf(72.dp, minOf(gridSil * 0.80f, cap * 0.92f))
+
+    val pool = listOf(
+        R.drawable.dojang_bg_yop_chagi,
+        R.drawable.dojang_bg_roundhouse,
+        R.drawable.dojang_bg_jumping_kick,
+        R.drawable.dojang_bg_ready_stance,
+        R.drawable.dojang_bg_power_punch,
+        R.drawable.dojang_bg_jumping_kick,
+        R.drawable.dojang_bg_yop_chagi,
+        R.drawable.dojang_bg_roundhouse,
+    )
+    val steps = 20
+    val gap = 10f
 
     for (cnt in listOf(8, 7, 6)) {
         val drawables = pool.take(cnt)
         for (step in 0 until steps) {
             val t = step / (steps - 1).coerceAtLeast(1).toFloat()
-            val sil = (targetLarge * (1f - t) + minSil * t).let { s: Dp ->
-                minOf(s, minOf(w, h) * 0.46f).coerceAtLeast(minSil)
-            }
-            repeat(96) { attempt ->
-                val rng = Random(seed xor (step.toLong() shl 48) xor (cnt.toLong() shl 32) xor attempt.toLong())
-                tryPlaceOnce(w, h, sil, drawables, rng, gap, 140)?.let { return it }
+            val raw = targetLarge * (1f - t) + minSilWanted * t
+            val sil = minOf(raw, cap).coerceAtLeast(minOf(minSilWanted, cap))
+            if (sil.value > wF - 20f || sil.value > hF - 20f) continue
+
+            repeat(120) { attempt ->
+                val rng = kotlin.random.Random(
+                    seed xor (step.toLong() shl 48) xor (cnt.toLong() shl 32) xor attempt.toLong(),
+                )
+                tryPlaceOnce(w, h, sil, drawables, rng, gap, 220)?.let { return it }
             }
         }
     }
-    return emptyList()
+    return fallbackGridPlacements(w, h, gridSil, targetLarge)
 }
 
 /**
  * Псевдослучайное размещение без пересечений и без захода в центр (добок / кулак).
- * Размер — примерно в 3 раза больше прежнего сеточного; при нехватке места слегка уменьшается.
+ * Если подобрать расклад не удаётся — используется сетка 3×3 без центра (силуэты не пропадают).
  */
 @Composable
 fun DojangSilhouetteBackdrop(modifier: Modifier = Modifier) {
@@ -123,11 +171,11 @@ fun DojangSilhouetteBackdrop(modifier: Modifier = Modifier) {
             val tripleTarget = (w * 0.17f).coerceIn(48.dp, 78.dp) * 3f
             val cellFit = minOf(cw, ch) * 0.94f
             val gridSil = minOf(tripleTarget, cellFit).coerceAtLeast(108.dp)
-            val targetLarge = (gridSil * 3f).coerceAtMost(minOf(w, h) * 0.5f)
+            val targetLarge = (gridSil * 3f).coerceAtMost(minOf(w, h) * 0.48f)
             val seed = w.value.toBits().toLong() xor h.value.toBits().toLong() xor 0xD06A116EEEL
             computePlacements(w, h, gridSil, targetLarge, seed)
         }
-        val a = 0.17f
+        val a = 0.2f
         placements.forEach { p ->
             Image(
                 painter = painterResource(p.drawable),
