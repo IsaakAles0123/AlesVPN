@@ -44,9 +44,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import android.widget.Toast
 import com.myvpn.app.data.VpnSettingsRepository
-import com.myvpn.app.ui.components.DojangBackground
-import com.myvpn.app.ui.theme.AccentGold
-import com.myvpn.app.ui.theme.AccentRed
+import com.myvpn.app.ui.components.NeonBackground
+import com.myvpn.app.ui.theme.NeonCyan
+import com.myvpn.app.ui.theme.NeonPurple
 import com.myvpn.app.ui.theme.TextMuted
 import com.myvpn.app.ui.theme.TextPrimary
 
@@ -66,7 +66,7 @@ fun WgKeySetupScreen(
     var address by remember { mutableStateOf(repository.loadAddress()) }
     var pasteBox by remember { mutableStateOf("") }
 
-    DojangBackground {
+    NeonBackground {
         Scaffold(
             modifier = modifier.fillMaxSize(),
             containerColor = Color.Transparent,
@@ -143,17 +143,17 @@ fun WgKeySetupScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = AccentGold.copy(alpha = 0.1f),
-                        contentColor = AccentGold,
+                        containerColor = NeonPurple.copy(alpha = 0.16f),
+                        contentColor = NeonCyan,
                     ),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
                     ) {
-                        Icon(Icons.Rounded.ContentPaste, contentDescription = null, tint = AccentGold)
+                        Icon(Icons.Rounded.ContentPaste, contentDescription = null, tint = NeonCyan)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Разобрать вставку", color = AccentGold)
+                        Text("Разобрать вставку", color = NeonCyan)
                     }
                 }
 
@@ -204,7 +204,7 @@ fun WgKeySetupScreen(
                         .fillMaxWidth()
                         .padding(top = 8.dp, bottom = 24.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = AccentRed,
+                        containerColor = NeonPurple,
                         contentColor = Color.White,
                     ),
                 ) {

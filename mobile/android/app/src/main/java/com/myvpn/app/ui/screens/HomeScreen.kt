@@ -19,7 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.myvpn.app.MainViewModel
 import com.myvpn.app.R
 import com.myvpn.app.data.VpnSettingsRepository
-import com.myvpn.app.ui.components.DojangBackground
+import com.myvpn.app.ui.components.NeonBackground
 import com.myvpn.app.ui.components.dashboard.VpnRefDashboard
 import com.wireguard.android.backend.Tunnel
 
@@ -36,7 +36,7 @@ fun HomeScreen(
     val isConfigured = wgSettingsRepository.isConfigured()
     val userVpnAddr = if (isConfigured) wgSettingsRepository.loadAddress().trim() else ""
 
-    DojangBackground {
+    NeonBackground {
         Column(
             modifier = modifier
                 .fillMaxSize()

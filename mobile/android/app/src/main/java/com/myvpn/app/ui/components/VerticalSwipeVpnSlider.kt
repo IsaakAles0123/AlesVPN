@@ -3,7 +3,6 @@ package com.myvpn.app.ui.components
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -19,7 +18,11 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.PowerSettingsNew
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
@@ -37,25 +40,18 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.myvpn.app.R
 import com.myvpn.app.ui.theme.AlesSpacing
-import com.myvpn.app.ui.theme.AccentGold
-import com.myvpn.app.ui.theme.AccentRed
-import com.myvpn.app.ui.theme.TextMuted
+import com.myvpn.app.ui.theme.NeonCyan
 import com.wireguard.android.backend.Tunnel
 import kotlinx.coroutines.launch
 
@@ -97,7 +93,7 @@ fun VerticalSwipeVpnSlider(
                 "Нажмите STOP, чтобы отключить"
             },
             style = MaterialTheme.typography.bodySmall,
-            color = TextMuted,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = AlesSpacing.small),
         )
@@ -146,7 +142,7 @@ fun VerticalSwipeVpnSlider(
                     for (i in 0..4) {
                         val r = 12f + i * 10f
                         drawArc(
-                            color = AccentGold.copy(alpha = 0.12f - i * 0.015f),
+                            color = NeonCyan.copy(alpha = 0.12f - i * 0.015f),
                             startAngle = 200f,
                             sweepAngle = 140f,
                             useCenter = false,
@@ -242,7 +238,7 @@ fun VerticalSwipeVpnSlider(
                                 .width(32.dp)
                                 .height(3.dp)
                                 .clip(RoundedCornerShape(2.dp))
-                                .background(if (showConnect) AccentRed else accentGreen),
+                                .background(if (showConnect) NeonCyan else accentGreen),
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -257,13 +253,20 @@ fun VerticalSwipeVpnSlider(
                             textAlign = TextAlign.Center,
                         )
                         Spacer(modifier = Modifier.height(4.dp))
-                        Image(
-                            painter = painterResource(R.drawable.ic_connect_fist),
-                            contentDescription = stringResource(R.string.dashboard_connect_fist_cd),
-                            contentScale = ContentScale.Fit,
-                            colorFilter = ColorFilter.tint(Color(0xFFF2F2F2)),
-                            modifier = Modifier.size(34.dp),
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(30.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF22252E)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.PowerSettingsNew,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.92f),
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
                     }
                 }
             }

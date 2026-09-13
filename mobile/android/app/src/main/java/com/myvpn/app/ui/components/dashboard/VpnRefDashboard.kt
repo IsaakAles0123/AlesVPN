@@ -1,6 +1,5 @@
 package com.myvpn.app.ui.components.dashboard
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,29 +11,26 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.WorkspacePremium
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -42,9 +38,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.myvpn.app.R
-import com.myvpn.app.ui.theme.AccentGold
-import com.myvpn.app.ui.theme.AccentRed
 import com.myvpn.app.ui.theme.AlesSpacing
+import com.myvpn.app.ui.theme.NeonCyan
+import com.myvpn.app.ui.theme.NeonPurple
+import com.myvpn.app.ui.theme.NeonPurpleDim
 import com.myvpn.app.ui.theme.TextMuted
 import com.myvpn.app.ui.theme.TextPrimary
 import com.wireguard.android.backend.Tunnel
@@ -63,28 +60,25 @@ fun RefTopBar(
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(24.dp))
-                .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(24.dp))
-                .background(Color(0xFF101012), RoundedCornerShape(24.dp))
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(NeonPurpleDim.copy(alpha = 0.9f), Color(0xFF3D2560)),
+                    ),
+                )
                 .clickable(onClick = onPlusClick)
-                .padding(start = 10.dp, end = 14.dp, top = 8.dp, bottom = 8.dp),
+                .padding(horizontal = 14.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(width = 3.dp, height = 18.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(AccentRed),
-            )
             Icon(
                 imageVector = Icons.Rounded.WorkspacePremium,
                 contentDescription = null,
-                tint = AccentGold,
+                tint = Color(0xFFFFE08A),
                 modifier = Modifier.size(18.dp),
             )
             Text(
                 text = "Get Plus",
-                color = TextPrimary,
+                color = Color.White,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
             )
@@ -93,7 +87,7 @@ fun RefTopBar(
             Icon(
                 imageVector = Icons.Rounded.Settings,
                 contentDescription = "Ключ доступа",
-                tint = AccentGold,
+                tint = NeonCyan,
             )
         }
     }
@@ -118,8 +112,8 @@ fun ConnectionStatusBlock(
             null
         }
     val statusColor = when (tunnelState) {
-        Tunnel.State.UP -> AccentRed
-        Tunnel.State.TOGGLE -> TextMuted
+        Tunnel.State.UP -> NeonCyan
+        Tunnel.State.TOGGLE -> NeonPurple
         Tunnel.State.DOWN -> TextPrimary
     }
     Column(
@@ -143,54 +137,51 @@ fun ConnectionStatusBlock(
 }
 
 @Composable
-fun DobokFistCluster(
+fun GlobePowerCluster(
     tunnelState: Tunnel.State,
     onPowerClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val busy = tunnelState == Tunnel.State.TOGGLE
     val enabled = !busy
-    val dobokRes = if (tunnelState == Tunnel.State.UP) {
-        R.drawable.dobok_black_belt
-    } else {
-        R.drawable.dobok_white_belt
-    }
-    val dobokCd = when (tunnelState) {
-        Tunnel.State.UP -> stringResource(R.string.dashboard_dobok_vpn_on_cd)
-        Tunnel.State.TOGGLE -> stringResource(R.string.dashboard_status_connecting)
-        Tunnel.State.DOWN -> stringResource(R.string.dashboard_dobok_vpn_off_cd)
-    }
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(400.dp),
+            .height(272.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Column(
-            modifier = Modifier.offset(y = 56.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-        ) {
-            Image(
-                painter = painterResource(dobokRes),
-                contentDescription = dobokCd,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.size(width = 188.dp, height = 216.dp),
-            )
-            Image(
-                painter = painterResource(R.drawable.ic_connect_fist),
-                contentDescription = stringResource(R.string.dashboard_connect_fist_cd),
-                contentScale = ContentScale.Fit,
-                colorFilter = ColorFilter.tint(Color(0xFFF2F2F2)),
+        val ringAlphas = listOf(0.14f, 0.10f, 0.06f, 0.04f)
+        ringAlphas.forEachIndexed { i, alpha ->
+            Box(
                 modifier = Modifier
-                    .size(102.dp)
-                    .alpha(if (enabled) 1f else 0.45f)
-                    .clickable(
-                        enabled = enabled,
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = ripple(bounded = false, radius = 52.dp),
-                        onClick = onPowerClick,
+                    .size((140 + i * 28).dp)
+                    .border(
+                        width = 2.dp,
+                        brush = Brush.sweepGradient(
+                            listOf(
+                                NeonPurple.copy(alpha = alpha * 2f),
+                                NeonCyan.copy(alpha = alpha),
+                                NeonPurple.copy(alpha = alpha * 2f),
+                            ),
+                        ),
+                        shape = CircleShape,
                     ),
+            )
+        }
+        FilledIconButton(
+            onClick = onPowerClick,
+            modifier = Modifier.size(88.dp),
+            enabled = enabled,
+            shape = CircleShape,
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = if (tunnelState == Tunnel.State.UP) NeonPurple else Color(0xFF2E3140),
+                contentColor = Color.White,
+            ),
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.PowerSettingsNew,
+                contentDescription = null,
+                modifier = Modifier.size(44.dp),
             )
         }
     }
@@ -230,7 +221,7 @@ fun VpnRefDashboard(
                 Text(
                     text = stringResource(R.string.dashboard_no_key_hint),
                     style = MaterialTheme.typography.bodySmall,
-                    color = AccentRed.copy(alpha = 0.9f),
+                    color = NeonCyan.copy(alpha = 0.85f),
                     textAlign = TextAlign.Center,
                 )
             }
@@ -244,7 +235,7 @@ fun VpnRefDashboard(
                 idleText = timerIdle,
             )
         }
-        DobokFistCluster(
+        GlobePowerCluster(
             tunnelState = tunnelState,
             onPowerClick = onPowerClick,
             modifier = Modifier
