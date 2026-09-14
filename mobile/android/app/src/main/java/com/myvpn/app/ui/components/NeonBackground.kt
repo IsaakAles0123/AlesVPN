@@ -42,7 +42,7 @@ fun NeonBackground(content: @Composable BoxScope.() -> Unit) {
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .height(GlobeBackdropHeight)
-                .offset(y = 0.dp),
+                .offset(y = 48.dp),
         )
         Box(
             modifier = Modifier
@@ -58,13 +58,29 @@ fun NeonBackground(content: @Composable BoxScope.() -> Unit) {
         )
         Box(
             modifier = Modifier
-                .align(Alignment.BottomStart)
-                .offset(x = (-60).dp, y = 24.dp)
-                .size(200.dp)
+                .align(Alignment.BottomCenter)
+                .offset(y = 40.dp)
+                .size(340.dp)
                 .background(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            NeonPurple.copy(alpha = 0.14f),
+                            NeonPurple.copy(alpha = 0.22f),
+                            NeonPurple.copy(alpha = 0.06f),
+                            Color.Transparent,
+                        ),
+                    ),
+                    shape = CircleShape,
+                ),
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .offset(x = (-60).dp, y = 24.dp)
+                .size(220.dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            NeonPurple.copy(alpha = 0.18f),
                             Color.Transparent,
                         ),
                     ),

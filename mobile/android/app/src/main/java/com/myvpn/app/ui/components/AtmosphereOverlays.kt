@@ -46,13 +46,24 @@ fun NebulaBottomGlowOverlay(modifier: Modifier = Modifier) {
         drawRect(
             brush = Brush.radialGradient(
                 colors = listOf(
+                    NeonPurple.copy(alpha = 0.28f),
+                    NeonPurple.copy(alpha = 0.12f),
+                    Color(0x331A0A1E),
                     Color(0x00000000),
-                    Color(0x1A1A0A1E),
-                    NeonPurple.copy(alpha = 0.2f),
-                    Color(0x2D3D1E4A),
                 ),
-                center = Offset(w * 0.5f, h * 0.99f),
-                radius = w * 0.95f,
+                center = Offset(w * 0.5f, h * 0.92f),
+                radius = w * 1.05f,
+            ),
+        )
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color(0x00000000),
+                    NeonPurple.copy(alpha = 0.10f),
+                    Color(0xFF0A0612).copy(alpha = 0.55f),
+                ),
+                startY = h * 0.62f,
+                endY = h,
             ),
         )
     }

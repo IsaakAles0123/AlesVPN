@@ -39,9 +39,9 @@ fun WireframeGlobeBackdrop(
         val w = size.width
         val hCanvas = size.height
         val cx = w / 2f
-        // Центр сферы ниже середины канваса — купол у нижнего края экрана, не «в середине UI».
-        val r = minOf(w * 0.48f, hCanvas * 0.44f)
-        val cy = hCanvas * 0.78f
+        // Крупный купол: экватор почти у низа экрана — меньше «пустой» полосы под горизонтом.
+        val r = minOf(w * 0.58f, hCanvas * 0.52f)
+        val cy = hCanvas * 0.96f
         val lonRot = CelestialGlobeData.LonRotationDeg
         val disc = Path().apply {
             addOval(
@@ -217,6 +217,36 @@ fun WireframeGlobeBackdrop(
             style = Stroke(width = 0.8.dp.toPx()),
         )
 
+        }
+
+        // Атмосфера под экватором — вместо ровной чёрной полосы
+        if (cy < hCanvas) {
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        NeonPurple.copy(alpha = 0.22f),
+                        Color(0xFF12081C).copy(alpha = 0.85f),
+                        Color(0xFF050508),
+                    ),
+                    startY = cy - r * 0.02f,
+                    endY = hCanvas,
+                ),
+                topLeft = Offset(0f, cy - 2f),
+                size = androidx.compose.ui.geometry.Size(w, hCanvas - cy + 4f),
+            )
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        NeonPurple.copy(alpha = 0.35f),
+                        NeonPurple.copy(alpha = 0.08f),
+                        Color.Transparent,
+                    ),
+                    center = Offset(cx, cy),
+                    radius = r * 0.85f,
+                ),
+                radius = r * 0.75f,
+                center = Offset(cx, cy + r * 0.05f),
+            )
         }
     }
 }

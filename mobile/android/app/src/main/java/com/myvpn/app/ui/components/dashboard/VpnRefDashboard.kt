@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -147,7 +148,7 @@ fun GlobePowerCluster(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(272.dp),
+            .height(220.dp),
         contentAlignment = Alignment.Center,
     ) {
         val ringAlphas = listOf(0.14f, 0.10f, 0.06f, 0.04f)
@@ -211,7 +212,7 @@ fun VpnRefDashboard(
                 .padding(horizontal = AlesSpacing.screenHorizontal)
                 .zIndex(2f),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(AlesSpacing.section),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             RefTopBar(
                 onPlusClick = onPlusClick,
@@ -235,12 +236,34 @@ fun VpnRefDashboard(
                 idleText = timerIdle,
             )
         }
-        GlobePowerCluster(
-            tunnelState = tunnelState,
-            onPowerClick = onPowerClick,
+        Column(
             modifier = Modifier
-                .align(Alignment.Center)
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(bottom = 72.dp)
                 .zIndex(1f),
-        )
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            GlobePowerCluster(
+                tunnelState = tunnelState,
+                onPowerClick = onPowerClick,
+                modifier = Modifier.offset(y = 12.dp),
+            )
+            Text(
+                text = when (tunnelState) {
+                    Tunnel.State.UP -> stringResource(R.string.dashboard_tap_to_disconnect)
+                    Tunnel.State.TOGGLE -> stringResource(R.string.dashboard_status_connecting)
+                    Tunnel.State.DOWN -> stringResource(R.string.dashboard_tap_to_connect)
+                },
+                style = MaterialTheme.typography.labelLarge,
+                color = if (tunnelState == Tunnel.State.UP) {
+                    NeonCyan.copy(alpha = 0.85f)
+                } else {
+                    TextMuted.copy(alpha = 0.9f)
+                },
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
     }
 }
