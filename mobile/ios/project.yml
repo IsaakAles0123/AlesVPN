@@ -5,6 +5,7 @@ options:
     iOS: "16.0"
   createIntermediateGroups: true
   groupSortPosition: top
+  developmentLanguage: ru
 
 packages:
   WireGuardApple:
@@ -21,6 +22,7 @@ targets:
     dependencies:
       - target: PacketTunnel
         embed: true
+        codeSign: true
     settings:
       base:
         PRODUCT_NAME: AlesVPN
@@ -29,11 +31,14 @@ targets:
         SWIFT_VERSION: "5.0"
         CURRENT_PROJECT_VERSION: "1"
         MARKETING_VERSION: "0.1.0"
+        CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: AlesVPN
         INFOPLIST_KEY_UILaunchScreen_Generation: true
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: AlesVPN использует локальную сеть для настройки VPN-туннеля.
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
     entitlements:
       path: AlesVPN/Resources/App/AlesVPN.entitlements
 
@@ -53,19 +58,30 @@ targets:
         SWIFT_VERSION: "5.0"
         CURRENT_PROJECT_VERSION: "1"
         MARKETING_VERSION: "0.1.0"
+        CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: NO
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"
     entitlements:
       path: AlesVPN/Resources/Extension/PacketTunnel.entitlements
     info:
       path: AlesVPN/Resources/Extension/Info.plist
+      properties:
+        CFBundleDisplayName: AlesVPN Tunnel
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.networkextension.packet-tunnel
+          NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).PacketTunnelProvider"
 
 schemes:
   AlesVPN:
     build:
       targets:
         AlesVPN: all
+        PacketTunnel: all
     run:
       config: Debug
+      askForAppToLaunch: true
     test:
       config: Debug
     profile:

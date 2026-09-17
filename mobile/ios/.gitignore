@@ -7,3 +7,6 @@ xcuserdata/
 *.ipa
 *.dSYM.zip
 *.dSYM
+AlesVPN.xcodeproj/
+AlesVPN.xcworkspace/
+.swiftpm/
