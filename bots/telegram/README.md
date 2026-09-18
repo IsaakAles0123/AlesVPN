@@ -1,6 +1,6 @@
 # AlesVPN — Telegram-бот оплаты
 
-Минимальный бот на **Python 3.10+** и **aiogram 3**: счёт в **Telegram Stars (XTR)** — не нужен банк на старте; пользователь платит звёздами внутри Telegram.
+Минимальный бот на **Python 3.10+** и **aiogram 3**: оплата **СБП через ЮKassa** (те же `YOOKASSA_*`, что у сайта).
 
 ## Если ошибка `Cannot connect to host api.telegram.org`
 
@@ -31,7 +31,7 @@ python -m ales_bot
 
 Токен бота: [@BotFather](https://t.me/BotFather) → `/newbot`.
 
-**ADMIN_IDS** — ваш числовой `user id` (например [@userinfobot](https://t.me/userinfobot)). После оплаты бот шлёт уведомление каждому админу. Для id из **ADMIN_IDS** команда **`/buy`** и кнопка оплаты **не списывают Stars** — сразу идёт выдача (как после оплаты, `0` в учёте).
+**ADMIN_IDS** — ваш числовой `user id` (например [@userinfobot](https://t.me/userinfobot)). После оплаты бот шлёт уведомление каждому админу. Для id из **ADMIN_IDS** команда **`/buy`** выдаёт доступ **бесплатно** (без СБП).
 
 ## Переменные `.env`
 
@@ -39,14 +39,16 @@ python -m ales_bot
 |------------|-------------|----------|
 | `BOT_TOKEN` | да | Токен от BotFather |
 | `ADMIN_IDS` | нет | Через запятую: кого уведомлять о платеже |
-| `PRICE_STARS` | нет | Цена в Stars (по умолчанию 50) |
+| `PRICE_RUB` | нет | Цена месяца в рублях (по умолчанию **75**) |
+| `YOOKASSA_SHOP_ID` / `YOOKASSA_SECRET_KEY` | да для оплаты | Ключи ЮKassa (как у `pay_api`) |
+| `BOT_USERNAME` | нет | Для return URL после СБП (по умолчанию `AlesVPN_bot`) |
 | `PRODUCT_TITLE` | нет | Заголовок счёта |
 | `PRODUCT_DESCRIPTION` | нет | Описание в счёте |
 | `TELEGRAM_PROXY` | нет | Прокси до `api.telegram.org`, если с сервера/ПК API недоступен |
 | `TELEGRAM_HTTP_TIMEOUT` | нет | Таймаут запросов к API (сек), по умолчанию **120** — снижает случайные `Request timeout` |
 | `DB_PATH` | нет | Путь к SQLite с учётом оплат (по умолчанию `.payments.sqlite` в рабочей папке) |
 | `SUPPORT_USERNAME` | нет | Логин поддержки в Telegram без `@` — показывается в `/help` |
-| `WG_AUTO_PROVISION` | нет | `true` / `1` — после Stars генерировать ключ, вызывать `wg-add-peer.sh`, прислать конфиг пользователю |
+| `WG_AUTO_PROVISION` | нет | `true` / `1` — после оплаты генерировать ключ, вызывать `wg-add-peer.sh`, прислать конфиг пользователю |
 | `WG_SERVER_PUBLIC_KEY` | при автовыдаче | Публичный ключ **сервера** WireGuard (как `wg_vendor_server_public_key` в Android) |
 | `WG_ENDPOINT` | при автовыдаче | `IP:порт` сервера (как в приложении) |
 | `WG_ADD_PEER_SCRIPT` | нет | Путь к `wg-add-peer.sh` (по умолчанию `/usr/local/bin/wg-add-peer.sh`) |
@@ -62,8 +64,9 @@ python -m ales_bot
 После оплаты запись пишется в базу; админы могут смотреть последние оплаты командой **`/stats`**.
 
 Команда **`/buy`** и `/start` показывают выбор платформы:
-- **Android — WireGuard** — ключ в чат (как раньше)
-- **iPhone — Happ** — ссылка `vless://` для импорта в Happ
+- **Android — WireGuard** — ключ в чат
+- **iPhone — Happ** — ссылка `vless://`
+Оплата: кнопка СБП → ЮKassa → «Проверить оплату» (или автопроверка ~10 мин).
 
 ### Автовыдача WireGuard
 

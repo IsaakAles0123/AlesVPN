@@ -116,22 +116,64 @@ class _XuiSession:
         except URLError as e:
             raise VlessProvisionError(f"3x-ui недоступен: {e}") from e
 
+    def _csrf_token(self) -> str:
+        """Новые 3x-ui требуют CSRF на POST /login (иначе HTTP 403)."""
+        for path in ("csrf-token", "panel/csrf-token"):
+            code, raw = self._request("GET", path)
+            if code >= 400 or not raw.strip():
+                continue
+            try:
+                payload = json.loads(raw)
+            except json.JSONDecodeError:
+                # иногда отдают сам токен текстом
+                tok = raw.strip().strip('"')
+                if tok:
+                    return tok
+                continue
+            if isinstance(payload, dict):
+                for key in ("csrfToken", "csrf_token", "token", "data"):
+                    val = payload.get(key)
+                    if isinstance(val, str) and val.strip():
+                        return val.strip()
+                    if isinstance(val, dict):
+                        inner = val.get("csrfToken") or val.get("token")
+                        if isinstance(inner, str) and inner.strip():
+                            return inner.strip()
+        return ""
+
     def login(self) -> None:
         token = (self._settings.xui_api_token or "").strip()
         if token:
-            # Bearer используется на каждый запрос; cookie login не нужен
+            # Bearer на /panel/api/* — login не нужен
             return
         user = self._settings.xui_username.strip()
         password = self._settings.xui_password
         if not user or not password:
             raise VlessProvisionError("Задайте XUI_API_TOKEN или XUI_USERNAME + XUI_PASSWORD")
-        code, raw = self._request(
-            "POST",
-            "login",
-            form={"username": user, "password": password},
-        )
+
+        csrf = self._csrf_token()
+        body = json.dumps(
+            {"username": user, "password": password},
+            ensure_ascii=False,
+        ).encode("utf-8")
+        headers: dict[str, str] = {"Content-Type": "application/json"}
+        if csrf:
+            headers["X-CSRF-Token"] = csrf
+
+        code, raw = self._request("POST", "login", data=body, headers=headers)
+        # fallback: form-urlencoded (старые панели)
         if code >= 400:
-            raise VlessProvisionError(f"3x-ui login HTTP {code}: {raw[:300]}")
+            code, raw = self._request(
+                "POST",
+                "login",
+                form={"username": user, "password": password},
+                headers={"X-CSRF-Token": csrf} if csrf else None,
+            )
+        if code >= 400:
+            raise VlessProvisionError(
+                f"3x-ui login HTTP {code}: {raw[:300]}. "
+                "Проще: Settings → Security → API Token → XUI_API_TOKEN в .env"
+            )
         try:
             payload = json.loads(raw) if raw.strip() else {}
         except json.JSONDecodeError:
@@ -163,28 +205,45 @@ class _XuiSession:
             "totalGB": 0,
             "expiryTime": expiry_ms,
             "enable": True,
-            "tgId": "",
+            "tgId": 0,
             "subId": sub_id,
             "comment": "",
             "reset": 0,
         }
-        body = {
-            "id": inbound_id,
-            "settings": json.dumps({"clients": [client_obj]}, ensure_ascii=False),
-        }
-        data = json.dumps(body, ensure_ascii=False).encode("utf-8")
         hdrs = {
             **self._auth_headers(),
             "Content-Type": "application/json",
         }
+
+        # Современная 3x-ui: POST /panel/api/clients/add
+        modern = {
+            "client": client_obj,
+            "inboundIds": [inbound_id],
+        }
         code, raw = self._request(
             "POST",
-            "panel/api/inbounds/addClient",
-            data=data,
+            "panel/api/clients/add",
+            data=json.dumps(modern, ensure_ascii=False).encode("utf-8"),
             headers=hdrs,
         )
+        # Старые панели: POST /panel/api/inbounds/addClient
+        if code == 404:
+            legacy = {
+                "id": inbound_id,
+                "settings": json.dumps({"clients": [client_obj]}, ensure_ascii=False),
+            }
+            code, raw = self._request(
+                "POST",
+                "panel/api/inbounds/addClient",
+                data=json.dumps(legacy, ensure_ascii=False).encode("utf-8"),
+                headers=hdrs,
+            )
+
         if code >= 400:
-            raise VlessProvisionError(f"addClient HTTP {code}: {raw[:500]}")
+            raise VlessProvisionError(
+                f"addClient HTTP {code}: {raw[:500]}. "
+                "Проверьте XUI_INBOUND_ID (id inbound Reality в панели)."
+            )
         try:
             payload: Any = json.loads(raw) if raw.strip() else {}
         except json.JSONDecodeError as e:

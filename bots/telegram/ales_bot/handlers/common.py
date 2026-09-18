@@ -39,6 +39,7 @@ def _platform_keyboard() -> InlineKeyboardMarkup:
 async def cmd_start(message: Message, settings: Settings) -> None:
     await message.answer(
         "Привет! Это бот оплаты <b>AlesVPN</b>.\n\n"
+        f"Месяц — <b>{settings.price_rub} ₽</b>, оплата через <b>СБП</b>.\n"
         "Выберите платформу:\n"
         "• <b>Android</b> — ключ WireGuard (приложение AlesVPN)\n"
         "• <b>iPhone</b> — ссылка для Happ (vless://)\n\n"
@@ -53,9 +54,10 @@ async def cmd_help(message: Message, settings: Settings) -> None:
     await message.answer(
         f"Ваш Telegram ID: <code>{uid}</code> — сообщите его в поддержке, "
         "если нужно найти ваш платёж.\n\n"
+        f"Оплата: <b>{settings.price_rub} ₽</b> / месяц через СБП (ЮKassa).\n"
         "После оплаты:\n"
         "• Android — ключ WireGuard в чат\n"
         "• iPhone — ссылка vless:// для Happ\n"
-        "Если что-то пошло не так — укажите ID платежа из чека Telegram."
+        "Если что-то пошло не так — укажите ID платежа ЮKassa."
         + _support_html(settings),
     )

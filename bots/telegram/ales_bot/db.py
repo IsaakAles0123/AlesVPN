@@ -1,4 +1,4 @@
-"""SQLite: учёт успешных оплат (Stars) и выдача WireGuard."""
+"""SQLite: учёт успешных оплат (СБП / админ) и выдача ключей."""
 
 from __future__ import annotations
 
@@ -54,6 +54,19 @@ def init_db(path: Path, *, wg_first_octet: int = 20) -> None:
             """
         )
         _migrate_payments(conn)
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bot_yk_orders (
+                yk_id TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                username TEXT,
+                platform TEXT NOT NULL,
+                amount_value TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """
+        )
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS wg_meta (
@@ -247,6 +260,103 @@ def list_recent_payments(path: Path, limit: int = 20) -> Sequence[PaymentRow]:
 
 async def init_db_async(path: Path, *, wg_first_octet: int = 20) -> None:
     await asyncio.to_thread(init_db, path, wg_first_octet=wg_first_octet)
+
+
+def insert_bot_yk_order(
+    path: Path,
+    *,
+    yk_id: str,
+    user_id: int,
+    username: str | None,
+    platform: str,
+    amount_value: str,
+) -> None:
+    conn = _connect(path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO bot_yk_orders (yk_id, user_id, username, platform, amount_value, status)
+            VALUES (?, ?, ?, ?, ?, 'pending')
+            """,
+            (yk_id, user_id, username, platform, amount_value),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+@dataclass(frozen=True)
+class BotYkOrder:
+    yk_id: str
+    user_id: int
+    username: str | None
+    platform: str
+    amount_value: str
+    status: str
+
+
+def get_bot_yk_order(path: Path, yk_id: str) -> BotYkOrder | None:
+    conn = _connect(path)
+    try:
+        row = conn.execute(
+            """
+            SELECT yk_id, user_id, username, platform, amount_value, status
+            FROM bot_yk_orders WHERE yk_id = ?
+            """,
+            (yk_id,),
+        ).fetchone()
+        if not row:
+            return None
+        return BotYkOrder(
+            yk_id=row[0],
+            user_id=int(row[1]),
+            username=row[2],
+            platform=row[3],
+            amount_value=row[4],
+            status=row[5],
+        )
+    finally:
+        conn.close()
+
+
+def set_bot_yk_order_status(path: Path, yk_id: str, status: str) -> None:
+    conn = _connect(path)
+    try:
+        conn.execute(
+            "UPDATE bot_yk_orders SET status = ? WHERE yk_id = ?",
+            (status, yk_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+async def insert_bot_yk_order_async(
+    path: Path,
+    *,
+    yk_id: str,
+    user_id: int,
+    username: str | None,
+    platform: str,
+    amount_value: str,
+) -> None:
+    await asyncio.to_thread(
+        insert_bot_yk_order,
+        path,
+        yk_id=yk_id,
+        user_id=user_id,
+        username=username,
+        platform=platform,
+        amount_value=amount_value,
+    )
+
+
+async def get_bot_yk_order_async(path: Path, yk_id: str) -> BotYkOrder | None:
+    return await asyncio.to_thread(get_bot_yk_order, path, yk_id)
+
+
+async def set_bot_yk_order_status_async(path: Path, yk_id: str, status: str) -> None:
+    await asyncio.to_thread(set_bot_yk_order_status, path, yk_id, status)
 
 
 async def insert_payment_async(

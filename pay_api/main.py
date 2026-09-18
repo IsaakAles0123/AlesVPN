@@ -67,7 +67,7 @@ logging.basicConfig(level=logging.INFO)
 
 PLANS: dict[str, tuple[str, str]] = {
     "first": ("1.00", "AlesVPN: первый месяц 1 ₽"),
-    "monthly": ("99.00", "AlesVPN: 1 мес, 99 ₽"),
+    "monthly": ("75.00", "AlesVPN: 1 мес, 75 ₽"),
     "m6": ("499.00", "AlesVPN: 6 мес, 499 ₽"),
     "m12": ("999.00", "AlesVPN: 12 мес, 999 ₽"),
 }
@@ -446,9 +446,9 @@ async def pay_buy(
                     "Акция",
                     f"<h1>Акция 1&nbsp;₽ уже использована</h1>"
                     f"<p class='sub'>Для <code>{escape(en)}</code> первый месяц за 1&nbsp;₽ уже оформляли. "
-                    f"Продлите за 99&nbsp;₽.</p>"
+                    f"Продлите за 75&nbsp;₽.</p>"
                     f"<p><a class='btn btn-main' href='{BASE_URL}/pay/buy?plan=monthly&platform={plat}'>"
-                    f"99&nbsp;₽ — месяц</a></p>"
+                    f"75&nbsp;₽ — месяц</a></p>"
                     f"<p class='sub'><a href='{BASE_URL}/pay/'>все тарифы</a></p>",
                 ),
                 403,
@@ -543,7 +543,7 @@ def _plan_buttons(b: str, plat: str) -> str:
   <input type="email" name="email" id="pemail-{plat}" required placeholder="name@mail.ru" autocomplete="email" style="width:100%;margin:0.4rem 0" />
   <p><button type="submit" class="btn btn-main" style="width:100%;border:none;cursor:pointer">1&nbsp;₽ — первый месяц</button></p>
 </form>
-<p><a class="btn btn-main" href="{b}/pay/buy?plan=monthly&platform={plat}">99&nbsp;₽ — месяц</a></p>
+<p><a class="btn btn-main" href="{b}/pay/buy?plan=monthly&platform={plat}">75&nbsp;₽ — месяц</a></p>
 <p><a class="btn btn-main" href="{b}/pay/buy?plan=m6&platform={plat}">499&nbsp;₽ — 6 месяцев</a></p>
 <p><a class="btn btn-main" href="{b}/pay/buy?plan=m12&platform={plat}">999&nbsp;₽ — 12 месяцев</a></p>
 """

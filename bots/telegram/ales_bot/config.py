@@ -30,12 +30,16 @@ def _parse_admin_ids(raw: str) -> tuple[int, ...]:
 class Settings:
     bot_token: str
     admin_ids: tuple[int, ...]
-    price_stars: int
+    price_rub: int
+    price_rub_value: str
     product_title: str
     product_description: str
     payment_provider_token: str | None
     db_path: Path
     support_username: str | None
+    yookassa_shop_id: str
+    yookassa_secret_key: str
+    yk_return_url: str
     wg_auto_provision: bool
     wg_binary: str
     wg_add_peer_script: Path
@@ -71,9 +75,10 @@ def load_settings() -> Settings:
         else:
             raise RuntimeError("Задайте BOT_TOKEN в .env (см. .env.example)")
 
-    price = int(os.getenv("PRICE_STARS") or "50")
-    if price < 1:
-        raise ValueError("PRICE_STARS должен быть >= 1")
+    price_rub = int(os.getenv("PRICE_RUB") or "75")
+    if price_rub < 1:
+        raise ValueError("PRICE_RUB должен быть >= 1")
+    price_rub_value = f"{price_rub}.00"
 
     ppt = os.getenv("PAYMENT_PROVIDER_TOKEN")
     ppt = ppt.strip() if ppt else None
@@ -85,6 +90,11 @@ def load_settings() -> Settings:
 
     sup = (os.getenv("SUPPORT_USERNAME") or "").strip().lstrip("@")
     support_username = sup if sup else None
+
+    yk_shop = (os.getenv("YOOKASSA_SHOP_ID") or "").strip()
+    yk_secret = (os.getenv("YOOKASSA_SECRET_KEY") or "").strip()
+    bot_user = (os.getenv("BOT_USERNAME") or "AlesVPN_bot").strip().lstrip("@")
+    yk_return = (os.getenv("YK_RETURN_URL") or f"https://t.me/{bot_user}").strip()
 
     wg_auto = _truthy(os.getenv("WG_AUTO_PROVISION"))
     wg_bin = (os.getenv("WG_BINARY") or "wg").strip()
@@ -138,7 +148,8 @@ def load_settings() -> Settings:
     return Settings(
         bot_token=token,
         admin_ids=_parse_admin_ids(os.getenv("ADMIN_IDS") or ""),
-        price_stars=price,
+        price_rub=price_rub,
+        price_rub_value=price_rub_value,
         product_title=(os.getenv("PRODUCT_TITLE") or "AlesVPN").strip(),
         product_description=(
             os.getenv("PRODUCT_DESCRIPTION") or "Доступ к VPN."
@@ -146,6 +157,9 @@ def load_settings() -> Settings:
         payment_provider_token=ppt,
         db_path=db_path,
         support_username=support_username,
+        yookassa_shop_id=yk_shop,
+        yookassa_secret_key=yk_secret,
+        yk_return_url=yk_return,
         wg_auto_provision=wg_auto,
         wg_binary=wg_bin,
         wg_add_peer_script=wg_script,

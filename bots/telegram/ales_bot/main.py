@@ -103,5 +103,5 @@ async def main() -> None:
     await bot.delete_webhook(drop_pending_updates=False)
     me = await bot.get_me()
     logger.info("Telegram: авторизован как @%s (id=%s)", me.username, me.id)
-    logger.info("Бот запущен. Оплата: Telegram Stars (XTR). Ctrl+C — остановка.")
+    logger.info("Бот запущен. Оплата: ЮKassa СБП (%s ₽/мес). Ctrl+C — остановка.", settings.price_rub)
     await dp.start_polling(bot)
