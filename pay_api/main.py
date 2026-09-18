@@ -87,7 +87,7 @@ def _html(title: str, body: str) -> str:
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/assets/style.css" />
+  <link rel="stylesheet" href="/assets/style.css?v=20260918c" />
   <style>
     .paybox{{max-width:52rem;margin:0 auto;padding:1.5rem;}}
     .paybox > h1{{
