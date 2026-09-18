@@ -66,11 +66,13 @@ def create_sbp_payment_sync(
     amount = settings.price_rub_value
     return_url = settings.yk_return_url
     idem = str(uuid.uuid4())
-    payload = {
+    # Без payment_method_data=sbp: иначе ЮKassa даёт
+    # «Payment method is not available», пока СБП не подключён к магазину.
+    # На странице оплаты пользователь выбирает СБП (когда способ включён).
+    payload: dict[str, Any] = {
         "amount": {"value": amount, "currency": "RUB"},
         "capture": True,
         "description": description[:128],
-        "payment_method_data": {"type": "sbp"},
         "confirmation": {
             "type": "redirect",
             "return_url": return_url,
@@ -93,7 +95,6 @@ def create_sbp_payment_sync(
         status=_status(y_p) or "pending",
         amount_value=amount,
     )
-
 
 def find_payment_sync(settings: Settings, payment_id: str) -> Any:
     _configure(settings)

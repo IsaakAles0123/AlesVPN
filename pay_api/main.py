@@ -42,21 +42,17 @@ from ales_bot.config import load_settings, normalize_platform
 from ales_bot.db import allocate_next_octet_async, init_db, init_db_async
 from ales_bot.vless_provision import VlessProvisionError, provision_vless_after_payment
 from ales_bot.wg_provision import WgProvisionError, provision_after_payment
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from yookassa import Configuration, Payment
 
 from yk_store import (
     consume_token_once,
-    email_looks_valid,
-    first_rub_taken_for_email,
     get_by_token,
     get_by_yk_id,
     init_yk,
     insert_order,
-    mark_first_rub_redeemed,
-    normalize_email,
     set_provision_error,
     set_provision_ok,
     set_provision_vless_ok,
@@ -66,10 +62,9 @@ log = logging.getLogger("pay_api")
 logging.basicConfig(level=logging.INFO)
 
 PLANS: dict[str, tuple[str, str]] = {
-    "first": ("1.00", "AlesVPN: первый месяц 1 ₽"),
     "monthly": ("75.00", "AlesVPN: 1 мес, 75 ₽"),
-    "m6": ("499.00", "AlesVPN: 6 мес, 499 ₽"),
-    "m12": ("999.00", "AlesVPN: 12 мес, 999 ₽"),
+    "m6": ("350.00", "AlesVPN: 6 мес, 350 ₽"),
+    "m12": ("800.00", "AlesVPN: 12 мес, 800 ₽"),
 }
 
 BASE_URL = (os.getenv("PAY_BASE_URL") or "https://alesvpn.ru").rstrip("/")
@@ -81,39 +76,6 @@ WEBHOOK_TOKEN = (os.getenv("PAY_WEBHOOK_TOKEN") or "").strip()
 _provision_lock = asyncio.Lock()
 
 
-def _first_rub_bypass_emails() -> set[str]:
-    """
-    E-mail, для которых акция «1 ₽» не учитывается (можно снова оформить 1 ₽).
-    Базовый список + PAY_FIRST_RUB_BYPASS_EMAILS (через запятую).
-    """
-    out: set[str] = set()
-    extra = (os.getenv("PAY_FIRST_RUB_BYPASS_EMAILS") or "").strip()
-    for part in extra.split(","):
-        t = part.strip()
-        if t:
-            out.add(normalize_email(t))
-    return out
-
-
-def _is_bypass_first_rub_email(norm: str) -> bool:
-    return bool(norm) and norm in _first_rub_bypass_emails()
-
-
-def _maybe_redeem_first_rub_sync(db_path: Path, yk_id: str) -> None:
-    """
-    После payment.succeeded: «1 ₽ на e-mail» отмечаем в БД навсегда (кроме bypass).
-    """
-    row = get_by_yk_id(db_path, yk_id)
-    if not row or row.plan_code != "first":
-        return
-    em = normalize_email(row.customer_email or "")
-    if not em or not email_looks_valid(em):
-        return
-    if _is_bypass_first_rub_email(em):
-        return
-    mark_first_rub_redeemed(db_path, em, yk_id)
-
-
 def _html(title: str, body: str) -> str:
     return f"""<!DOCTYPE html>
 <html lang="ru">
@@ -122,11 +84,68 @@ def _html(title: str, body: str) -> str:
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="dark" />
   <title>{escape(title)}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/style.css" />
-  <style>.paybox{{max-width:40rem;margin:0 auto;padding:1.5rem;}}</style>
+  <style>
+    .paybox{{max-width:52rem;margin:0 auto;padding:1.5rem;}}
+    .paybox > h1{{
+      text-align:center;
+      max-width:none;
+      width:100%;
+      margin-left:auto;
+      margin-right:auto;
+    }}
+    .paybox > .sub,
+    .paybox > .pay-foot{{
+      text-align:center;
+      max-width:none;
+      width:100%;
+      margin-left:auto;
+      margin-right:auto;
+    }}
+    .pay-cols{{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:1.5rem 2rem;
+      margin:1.5rem 0 1rem;
+      align-items:start;
+    }}
+    .pay-col{{min-width:0;}}
+    .pay-col h2{{text-align:center;margin:0 0 0.5rem;font-size:1.15rem;}}
+    .pay-col .sub{{
+      text-align:center;
+      max-width:none;
+      width:100%;
+      margin-left:auto;
+      margin-right:auto;
+    }}
+    .pay-col .btn{{display:block;width:100%;box-sizing:border-box;text-align:center;margin:0.45rem 0;}}
+    @media (max-width:700px){{
+      .pay-cols{{grid-template-columns:1fr;}}
+    }}
+  </style>
 </head>
 <body>
+  <div id="bg" aria-hidden="true">
+    <div class="stars-css"></div>
+    <div class="stars-css-dense"></div>
+    <div class="stars-tile"></div>
+    <div class="stars-tile stars-tile-b"></div>
+    <canvas id="star-canvas"></canvas>
+    <div class="comets">
+      <span class="comet" style="--comet-dur: 13s; --comet-delay: 0s; --comet-rot: atan2(70vh, 85vw); --comet-sx: 5vw; --comet-sy: 8vh; --comet-ex: 90vw; --comet-ey: 78vh; --comet-scale: 0.9"></span>
+      <span class="comet" style="--comet-dur: 17s; --comet-delay: 3.2s; --comet-rot: atan2(48vh, 75vw); --comet-sx: 20vw; --comet-sy: 2vh; --comet-ex: 95vw; --comet-ey: 50vh; --comet-scale: 0.75"></span>
+      <span class="comet" style="--comet-dur: 11s; --comet-delay: 6.5s; --comet-rot: atan2(55vh, 82vw); --comet-sx: -2vw; --comet-sy: 35vh; --comet-ex: 80vw; --comet-ey: 90vh; --comet-scale: 0.65"></span>
+      <span class="comet" style="--comet-dur: 20s; --comet-delay: 1.8s; --comet-rot: atan2(86vh, 69vw); --comet-sx: 3vw; --comet-sy: 2vh; --comet-ex: 72vw; --comet-ey: 88vh; --comet-scale: 0.7"></span>
+      <span class="comet" style="--comet-dur: 15s; --comet-delay: 8.2s; --comet-rot: atan2(38vh, 52vw); --comet-sx: 48vw; --comet-sy: 0vh; --comet-ex: 100vw; --comet-ey: 38vh; --comet-scale: 0.55"></span>
+    </div>
+    <div class="glow-tr"></div>
+    <div class="glow-bl"></div>
+  </div>
   <div class="wrap paybox" id="content">{body}</div>
+  <script src="/assets/stars.js" defer></script>
 </body>
 </html>"""
 
@@ -298,7 +317,6 @@ async def _html_after_paid(yk_id: str) -> RedirectResponse | HTMLResponse:
         )
 
     s = load_settings()
-    await asyncio.to_thread(_maybe_redeem_first_rub_sync, s.db_path, yk_id)
     err = await _do_provision(yk_id)
     row2 = get_by_yk_id(s.db_path, yk_id)
     if row2 and _order_has_access(row2):
@@ -409,7 +427,6 @@ async def pay_download_conf(t: str | None = None) -> Any:
 async def pay_buy(
     plan: str = "monthly",
     platform: str = "android",
-    email: str | None = Query(None, description="E-mail для учёта «1 ₽ — первый месяц»"),
 ) -> Any:
     if not (SHOP_ID and SECRET):
         return HTMLResponse(
@@ -425,35 +442,6 @@ async def pay_buy(
             400,
         )
     plat = normalize_platform(platform) or "android"
-    customer_email: str | None = None
-    if pl == "first":
-        en = normalize_email(email or "")
-        if not email_looks_valid(en):
-            return HTMLResponse(
-                _html(
-                    "E-mail",
-                    f"<h1>Первый месяц за 1&nbsp;₽</h1>"
-                    f"<p class='sub'>Укажите корректный e-mail на <a href='{BASE_URL}/pay/?platform={plat}'>странице оплаты</a>.</p>"
-                    f"<p class='sub'><a href='{BASE_URL}/pay/'>← к тарифам</a></p>",
-                ),
-                400,
-            )
-        if not _is_bypass_first_rub_email(
-            en
-        ) and first_rub_taken_for_email(p, en):
-            return HTMLResponse(
-                _html(
-                    "Акция",
-                    f"<h1>Акция 1&nbsp;₽ уже использована</h1>"
-                    f"<p class='sub'>Для <code>{escape(en)}</code> первый месяц за 1&nbsp;₽ уже оформляли. "
-                    f"Продлите за 75&nbsp;₽.</p>"
-                    f"<p><a class='btn btn-main' href='{BASE_URL}/pay/buy?plan=monthly&platform={plat}'>"
-                    f"75&nbsp;₽ — месяц</a></p>"
-                    f"<p class='sub'><a href='{BASE_URL}/pay/'>все тарифы</a></p>",
-                ),
-                403,
-            )
-        customer_email = en
     amount, desc = PLANS[pl]
     plat_label = "iPhone (Happ)" if plat == "ios" else "Android (WireGuard)"
     desc = f"{desc} [{plat_label}]"
@@ -465,8 +453,6 @@ async def pay_buy(
         "ret": return_token,
         "platform": plat,
     }
-    if pl == "first" and customer_email:
-        meta["email"] = customer_email
     try:
         y_p = await asyncio.to_thread(
             Payment.create,
@@ -505,7 +491,7 @@ async def pay_buy(
             amount_value=amount,
             return_token=return_token,
             status="created",
-            customer_email=customer_email,
+            customer_email=None,
             platform=plat,
         )
     except RuntimeError as e:
@@ -536,16 +522,9 @@ async def pay_buy(
 
 def _plan_buttons(b: str, plat: str) -> str:
     return f"""
-<form class="sub" method="get" action="{b}/pay/buy" style="max-width:22rem;margin:1rem 0">
-  <input type="hidden" name="plan" value="first" />
-  <input type="hidden" name="platform" value="{plat}" />
-  <label for="pemail-{plat}">E-mail</label>
-  <input type="email" name="email" id="pemail-{plat}" required placeholder="name@mail.ru" autocomplete="email" style="width:100%;margin:0.4rem 0" />
-  <p><button type="submit" class="btn btn-main" style="width:100%;border:none;cursor:pointer">1&nbsp;₽ — первый месяц</button></p>
-</form>
 <p><a class="btn btn-main" href="{b}/pay/buy?plan=monthly&platform={plat}">75&nbsp;₽ — месяц</a></p>
-<p><a class="btn btn-main" href="{b}/pay/buy?plan=m6&platform={plat}">499&nbsp;₽ — 6 месяцев</a></p>
-<p><a class="btn btn-main" href="{b}/pay/buy?plan=m12&platform={plat}">999&nbsp;₽ — 12 месяцев</a></p>
+<p><a class="btn btn-main" href="{b}/pay/buy?plan=m6&platform={plat}">350&nbsp;₽ — 6 месяцев</a></p>
+<p><a class="btn btn-main" href="{b}/pay/buy?plan=m12&platform={plat}">800&nbsp;₽ — 12 месяцев</a></p>
 """
 
 
@@ -554,17 +533,21 @@ def _pay_index_body() -> str:
     return f"""
 <h1>Оплата AlesVPN</h1>
 <p class="sub">Выберите платформу — выдаётся разный доступ.</p>
-<p class="sub">Первый месяц за 1&nbsp;₽ — один раз на e-mail.</p>
 
-<h2 id="android">Android — приложение AlesVPN / WireGuard</h2>
-<p class="sub">После оплаты получите ключ WireGuard для Android.</p>
-{_plan_buttons(b, "android")}
+<div class="pay-cols">
+  <section class="pay-col" id="android">
+    <h2>Android — WireGuard</h2>
+    <p class="sub">Ключ для приложения AlesVPN</p>
+    {_plan_buttons(b, "android")}
+  </section>
+  <section class="pay-col" id="ios">
+    <h2>iPhone — Happ</h2>
+    <p class="sub">Ссылка <code>vless://</code> для Happ</p>
+    {_plan_buttons(b, "ios")}
+  </section>
+</div>
 
-<h2 id="ios">iPhone — приложение Happ</h2>
-<p class="sub">После оплаты получите ссылку <code>vless://</code> для импорта в Happ.</p>
-{_plan_buttons(b, "ios")}
-
-<p class="sub"><a href="{b}/">на главную</a></p>
+<p class="sub pay-foot"><a href="{b}/">на главную</a></p>
 """
 
 
@@ -620,9 +603,6 @@ async def pay_hook(request: Request) -> Any:
                     existing.amount_value,
                 )
                 return JSONResponse({"ok": True})
-            await asyncio.to_thread(
-                _maybe_redeem_first_rub_sync, s.db_path, pid
-            )
             err = await _do_provision(pid)
             if err:
                 log.warning("hook provision: %s", err[:200])

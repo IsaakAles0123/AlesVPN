@@ -28,6 +28,9 @@ body {
   color: var(--text);
   font-family: var(--font);
   background: var(--bg-0);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 .skip-link {
   position: absolute;
@@ -713,6 +716,98 @@ footer .foot-links {
 .oferta-back:hover {
   text-decoration: underline;
 }
+
+/* Лендинг: центр + более чёткий текст */
+.wrap-center {
+  text-align: center;
+}
+.wrap-center header {
+  justify-content: center;
+  gap: 1rem 1.5rem;
+}
+.wrap-center .hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 0 0.5rem;
+}
+.wrap-center h1 {
+  max-width: none;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  letter-spacing: -0.02em;
+  filter: contrast(1.08);
+}
+.wrap-center .sub,
+.wrap-center .sub-tight,
+.wrap-center .dns-hint,
+.wrap-center .security,
+.wrap-center .delivery-block {
+  max-width: 40rem;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  color: color-mix(in srgb, var(--text) 72%, var(--muted));
+}
+.wrap-center .sub strong,
+.wrap-center .sub-tight strong {
+  color: var(--text);
+  font-weight: 700;
+}
+.wrap-center .pill {
+  margin-left: auto;
+  margin-right: auto;
+  border-color: color-mix(in srgb, var(--cyan) 35%, var(--line));
+  color: color-mix(in srgb, var(--text) 85%, var(--muted));
+}
+.wrap-center .cta {
+  justify-content: center;
+  width: 100%;
+}
+.wrap-center h2 {
+  text-align: center;
+  letter-spacing: -0.01em;
+}
+.wrap-center .product-offer {
+  max-width: 36rem;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: left;
+}
+.wrap-center .product-offer h3 {
+  text-align: center;
+}
+.wrap-center .product-offer .price-tiers-title {
+  text-align: center;
+}
+.wrap-center .product-offer > p:last-child {
+  text-align: center;
+}
+.wrap-center .grid {
+  text-align: left;
+}
+.wrap-center .card {
+  text-align: center;
+}
+.wrap-center .card .ic {
+  display: block;
+}
+.wrap-center ol.steps {
+  max-width: 36rem;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: left;
+  color: color-mix(in srgb, var(--text) 70%, var(--muted));
+}
+.wrap-center .btn {
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+.wrap-center .btn-main {
+  box-shadow: 0 4px 28px color-mix(in srgb, var(--cyan) 42%, transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .glow-tr,
   .glow-bl,

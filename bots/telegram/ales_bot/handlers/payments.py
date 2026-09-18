@@ -90,7 +90,7 @@ def _pay_keyboard(yk_id: str, pay_url: str, price_rub: int) -> InlineKeyboardMar
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=f"Оплатить {price_rub} ₽ через СБП",
+                    text=f"Оплатить {price_rub} ₽",
                     url=pay_url,
                 ),
             ],
@@ -492,7 +492,7 @@ async def _start_sbp_checkout(
 
     await message.answer(
         f"Оплата <b>{settings.price_rub} ₽</b> за 1 месяц — {label}.\n\n"
-        "1) Нажмите «Оплатить через СБП»\n"
+        "1) Нажмите «Оплатить» (откроется ЮKassa, лучше СБП)\n"
         "2) После оплаты — «Проверить оплату» "
         "(или подождите, бот проверит сам)",
         reply_markup=_pay_keyboard(pay.id, pay.confirmation_url, settings.price_rub),
