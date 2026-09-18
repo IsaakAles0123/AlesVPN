@@ -52,8 +52,18 @@ python -m ales_bot
 | `WG_ADD_PEER_SCRIPT` | нет | Путь к `wg-add-peer.sh` (по умолчанию `/usr/local/bin/wg-add-peer.sh`) |
 | `WG_SUBNET_PREFIX` | нет | Первые три октета, например `10.8.0` |
 | `WG_OCTET_MIN` / `WG_OCTET_MAX` | нет | Диапазон последнего октета клиента (по умолчанию 20–250) |
+| `HAPP_AUTO_PROVISION` | нет | `true` — после оплаты iOS создать клиента в 3x-ui и прислать `vless://` |
+| `XUI_BASE_URL` | при Happ | URL панели 3x-ui (лучше `http://127.0.0.1:…/path`) |
+| `XUI_USERNAME` / `XUI_PASSWORD` | при Happ | Логин панели **или** `XUI_API_TOKEN` |
+| `XUI_INBOUND_ID` | при Happ | ID inbound Reality (часто `1`) |
+| `XUI_PUBLIC_HOST` / `XUI_PUBLIC_PORT` | при Happ | Хост и порт в ссылке (например `186.246.24.7` / `8443`) |
+| `XUI_PBK` / `XUI_SID` / `XUI_SNI` / `XUI_FP` | при Happ | Параметры Reality (как в рабочем профиле Happ) |
 
 После оплаты запись пишется в базу; админы могут смотреть последние оплаты командой **`/stats`**.
+
+Команда **`/buy`** и `/start` показывают выбор платформы:
+- **Android — WireGuard** — ключ в чат (как раньше)
+- **iPhone — Happ** — ссылка `vless://` для импорта в Happ
 
 ### Автовыдача WireGuard
 
@@ -62,6 +72,12 @@ python -m ales_bot
 Бот: генерирует пару ключей (`wg genkey` / `wg pubkey`), выделяет следующий IP из пула `10.8.0.N` (учёт в SQLite), вызывает `wg-add-peer.sh <pub> N/32`, отправляет пользователю **две строки** для вставки в AlesVPN и файл `alesvpn.conf`.
 
 Параметры `WG_SERVER_PUBLIC_KEY`, `WG_ENDPOINT`, DNS и AllowedIPs должны **совпадать** с тем, что зашито в приложении (`mobile/android/.../values/strings.xml`), иначе туннель не поднимется.
+
+### Автовыдача Happ (iPhone)
+
+На том же VPS, где крутится **3x-ui**, в `.env` включите `HAPP_AUTO_PROVISION=true` и задайте `XUI_*` (см. `.env.example`). Бот/касса логинятся в панель, добавляют клиента в inbound Reality и собирают ссылку `vless://` с `fp=safari` и flow vision.
+
+Пользователю: App Store → Happ → импорт из буфера. Не открывайте `http://` ссылки экспорта панели на iPhone — нужна именно `vless://`.
 
 ## Запуск на VPS 24/7 (без ПК)
 

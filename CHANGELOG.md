@@ -4,6 +4,7 @@
 
 ## [Unreleased]
 
+- Чистка репозитория: пустые `backend`/`infra`/`node-scripts`, мёртвый dojang UI, Spring-заглушка в `server/` (оставлены только WG-скрипты), шаблон `wg_sample.conf` без реальных ключей, локальные build/venv.
 - Деплой pay_api на VPS без git: [`scripts/deploy-pay-api-to-vps.ps1`](scripts/deploy-pay-api-to-vps.ps1), раздел в [`web/SERVER-SETUP.md`](web/SERVER-SETUP.md).
 - Android: release-подпись при наличии `mobile/android/keystore.properties` ([`keystore.properties.example`](mobile/android/keystore.properties.example)); чеклист Play — [`docs/play-console-checklist.txt`](docs/play-console-checklist.txt).
 - iOS/Android: сверка `wg_vendor_*` — [`tools/verify-wg-vendor-sync.ps1`](tools/verify-wg-vendor-sync.ps1); инструкция в [`mobile/ios/README.md`](mobile/ios/README.md).
@@ -26,8 +27,8 @@
 
 ### Сервер (`server/`)
 
-- Скрипты: `wg-add-peer.sh`, `wg-remove-peer.sh`, `wg-backup-wg0.sh` (LF в репозитории, `.gitattributes` для `*.sh`).
-- Документация: `README-WG-SCRIPTS.md` (копирование на VPS, cron-бэкап).
+- Скрипты: `wg-add-peer.sh`, `wg-remove-peer.sh` (LF в репозитории, `.gitattributes` для `*.sh`).
+- Документация: `README-WG-SCRIPTS.md` (копирование на VPS).
 
 ### Инструменты
 

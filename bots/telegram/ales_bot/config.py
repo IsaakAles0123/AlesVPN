@@ -1,4 +1,4 @@
-"""Загрузка настроек из переменных окружения (.env)."""
+﻿"""Загрузка настроек из переменных окружения (.env)."""
 
 from __future__ import annotations
 
@@ -47,6 +47,19 @@ class Settings:
     wg_subnet_prefix: str
     wg_octet_min: int
     wg_octet_max: int
+    happ_auto_provision: bool
+    xui_base_url: str
+    xui_username: str
+    xui_password: str
+    xui_api_token: str
+    xui_inbound_id: int
+    xui_public_host: str
+    xui_public_port: int
+    xui_pbk: str
+    xui_sid: str
+    xui_sni: str
+    xui_fp: str
+    xui_flow: str
     invoice_payload: str = "alesvpn_sub_v1"
 
 
@@ -94,6 +107,34 @@ def load_settings() -> Settings:
     if wg_min < 2 or wg_max > 254 or wg_min > wg_max:
         raise ValueError("WG_OCTET_MIN / WG_OCTET_MAX должны быть в диапазоне 2–254 и min ≤ max")
 
+    happ_auto = _truthy(os.getenv("HAPP_AUTO_PROVISION"))
+    xui_base = (os.getenv("XUI_BASE_URL") or "").strip()
+    xui_user = (os.getenv("XUI_USERNAME") or "").strip()
+    xui_pass = os.getenv("XUI_PASSWORD") or ""
+    xui_token = (os.getenv("XUI_API_TOKEN") or "").strip()
+    xui_inbound = int(os.getenv("XUI_INBOUND_ID") or "0")
+    xui_host = (os.getenv("XUI_PUBLIC_HOST") or "").strip()
+    xui_port = int(os.getenv("XUI_PUBLIC_PORT") or "8443")
+    xui_pbk = (os.getenv("XUI_PBK") or "").strip()
+    xui_sid = (os.getenv("XUI_SID") or "").strip()
+    xui_sni = (os.getenv("XUI_SNI") or "www.cloudflare.com").strip()
+    xui_fp = (os.getenv("XUI_FP") or "safari").strip()
+    xui_flow = (os.getenv("XUI_FLOW") or "xtls-rprx-vision").strip()
+
+    if happ_auto:
+        if not xui_base:
+            raise RuntimeError("HAPP_AUTO_PROVISION: задайте XUI_BASE_URL")
+        if not xui_token and (not xui_user or not xui_pass):
+            raise RuntimeError(
+                "HAPP_AUTO_PROVISION: задайте XUI_API_TOKEN или XUI_USERNAME+XUI_PASSWORD",
+            )
+        if xui_inbound < 1:
+            raise RuntimeError("HAPP_AUTO_PROVISION: задайте XUI_INBOUND_ID")
+        if not xui_host or not xui_pbk or not xui_sid:
+            raise RuntimeError(
+                "HAPP_AUTO_PROVISION: задайте XUI_PUBLIC_HOST, XUI_PBK, XUI_SID",
+            )
+
     return Settings(
         bot_token=token,
         admin_ids=_parse_admin_ids(os.getenv("ADMIN_IDS") or ""),
@@ -116,8 +157,30 @@ def load_settings() -> Settings:
         wg_subnet_prefix=wg_prefix,
         wg_octet_min=wg_min,
         wg_octet_max=wg_max,
+        happ_auto_provision=happ_auto,
+        xui_base_url=xui_base,
+        xui_username=xui_user,
+        xui_password=xui_pass,
+        xui_api_token=xui_token,
+        xui_inbound_id=xui_inbound,
+        xui_public_host=xui_host,
+        xui_public_port=xui_port,
+        xui_pbk=xui_pbk,
+        xui_sid=xui_sid,
+        xui_sni=xui_sni,
+        xui_fp=xui_fp,
+        xui_flow=xui_flow,
     )
 
 
 def is_admin(user_id: int, settings: Settings) -> bool:
     return user_id in settings.admin_ids
+
+
+def normalize_platform(raw: str | None) -> str:
+    p = (raw or "").strip().lower()
+    if p in ("ios", "iphone", "happ", "apple"):
+        return "ios"
+    if p in ("android", "wg", "wireguard"):
+        return "android"
+    return ""

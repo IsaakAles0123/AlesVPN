@@ -74,6 +74,13 @@ async def main() -> None:
             settings.wg_endpoint,
             settings.wg_add_peer_script,
         )
+    if settings.happ_auto_provision:
+        logger.info(
+            "Автовыдача Happ: inbound=%s host=%s:%s",
+            settings.xui_inbound_id,
+            settings.xui_public_host,
+            settings.xui_public_port,
+        )
     session = _make_bot_session()
     logger.info(
         "HTTP-клиент Telegram: timeout=%ss%s%s",

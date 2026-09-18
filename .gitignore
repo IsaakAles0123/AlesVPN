@@ -17,7 +17,9 @@ mobile/android/*.keystore
 
 # IDE
 .idea/
+.vscode/
 *.iml
+*.swp
 
 # OS
 .DS_Store
@@ -43,11 +45,12 @@ Thumbs.db
 /fill.txt
 /remote.txt
 /ls-remote.txt
-wireguard/phone.conf
 
-# Сгенерированные ключи (не коммитить)
+# Локальные WireGuard (ключи/конфиги — не коммитить)
+/wireguard/
 /keys/
 keys/
+wg-client-*.conf
 
 # SQLite / локальные БД (оплаты, бот — не коммитить)
 *.sqlite
@@ -56,10 +59,9 @@ keys/
 # Python
 __pycache__/
 *.py[cod]
+.venv/
+**/venv/
 
 # Личные файлы вне продукта
 CV_*.html
 CV_*.pdf
-
-# Локальные WireGuard-клиенты (генерируются вручную)
-wg-client-*.conf

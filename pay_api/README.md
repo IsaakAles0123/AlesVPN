@@ -1,11 +1,16 @@
 # Веб-оплата AlesVPN (ЮKassa) и страница с ключом
 
-Сервис `main:app` (FastAPI): создаёт платёж в ЮKassa, после успеха вызывает ту же логику WireGuard, что и Telegram-бот (`ales_bot.wg_provision`), и отдаёт ключ на `/pay/done?t=…`.
+Сервис `main:app` (FastAPI): создаёт платёж в ЮKassa, после успеха выдаёт доступ по платформе и отдаёт его на `/pay/done?t=…`.
+
+Платформы на `/pay/`:
+- **Android** (`platform=android`) — WireGuard (`ales_bot.wg_provision`)
+- **iPhone** (`platform=ios`) — Happ / VLESS (`ales_bot.vless_provision` + 3x-ui)
+
 Ссылка `/pay/done?t=...` одноразовая: после первого успешного открытия становится недействительной.
 
 ## Переменные окружения
 
-Используется **тот же** `.env`, что и у бота (путь к БД, `WG_*`, при необходимости `PAY_API_MODE=1`).
+Используется **тот же** `.env`, что и у бота (путь к БД, `WG_*`, `HAPP_*` / `XUI_*`, при необходимости `PAY_API_MODE=1`).
 
 Дополнительно:
 
@@ -40,7 +45,8 @@ python3 -m uvicorn pay_api.main:app --host 127.0.0.1 --port 8008
 
 В `web/nginx-alesvpn-site.conf` есть блок `location /pay/`. **Тот же блок** перенесите в сервер, где настроен HTTPS (после Certbot), и перезагрузите Nginx.
 
-Проверка: `https://alesvpn.ru/pay/` — список кнопок-тарифов.
+Проверка: `https://alesvpn.ru/pay/` — два раздела (Android / iPhone) с тарифами.
+Якоря: `/pay/#android`, `/pay/#ios`.
 
 Редирект после оплаты: в `return_url` передаётся `?ret=<return_token>`. Касса не гарантирует `paymentId` в query; по `ret` заказ всё равно находится в `yookassa_web`.
 

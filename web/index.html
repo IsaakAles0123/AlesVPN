@@ -7,12 +7,12 @@
     <meta name="theme-color" content="#050508" />
     <meta
       name="description"
-      content="AlesVPN — WireGuard VPN. Оформление доступа, ключ в приложение для Android. Космическая тёмная тема."
+      content="AlesVPN — Android (WireGuard) и iPhone (Happ). Оформление доступа на сайте или в Telegram-боте."
     />
     <meta property="og:title" content="AlesVPN" />
     <meta
       property="og:description"
-      content="Доступ и ключ в одном ритме с приложением. WireGuard, неон, тёмный космос."
+      content="Два раздела: Android — WireGuard, iPhone — Happ. Неон, тёмный космос."
     />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="ru_RU" />
@@ -76,11 +76,11 @@
         >
       </header>
 
-      <p class="pill">WireGuard <b>и приложение AlesVPN</b></p>
-      <h1>Доступ и ключ — без путаницы</h1>
+      <p class="pill">Android <b>WireGuard</b> · iPhone <b>Happ</b></p>
+      <h1>Два раздела — один сервис</h1>
       <p class="sub">
-        Оформление через браузер, пока туннель ещё не настроен. Визуально — тот
-        же космос, неон и тёмный фон, что в клиенте на Android.
+        На сайте и в боте выберите платформу: Android получает ключ WireGuard,
+        iPhone — ссылку для Happ. Тот же космос и неон, что в приложении.
       </p>
 
       <p class="dns-hint" id="dns-hint" hidden>
@@ -90,12 +90,8 @@
       </p>
 
       <div class="cta">
-        <a
-          class="btn btn-main"
-          id="link-pay"
-          href="/pay/"
-          >Получить доступ</a
-        >
+        <a class="btn btn-main" href="/pay/#android">Android — оплата</a>
+        <a class="btn btn-main" href="/pay/#ios">iPhone — оплата</a>
         <a
           class="btn btn-ghost"
           id="link-tg"
@@ -113,13 +109,17 @@
         стороне ЮKassa или в боте.
       </p>
       <div class="product-offer">
-        <h3>Доступ к VPN AlesVPN (WireGuard)</h3>
+        <h3>Android — WireGuard (приложение AlesVPN)</h3>
         <p>
-          Предоставление сетевого доступа к VPN: учёт в сети, приватный ключ и
-          адрес в пуле для настройки в приложении AlesVPN на Android. Сервис
-          оказывается в электронной форме, без поставки физического товара.
+          Приватный ключ и адрес в пуле для настройки в приложении AlesVPN на
+          Android. Сервис оказывается в электронной форме.
         </p>
-        <p class="price-tiers-title">Тарифы</p>
+        <h3>iPhone — Happ (VLESS)</h3>
+        <p>
+          Ссылка <code>vless://</code> для импорта в приложение Happ из App
+          Store. Отдельный раздел оплаты — на сайте и в боте.
+        </p>
+        <p class="price-tiers-title">Тарифы (одинаковые для обеих платформ)</p>
         <ul class="price-tiers">
           <li><span>Первый календарный месяц</span> <strong>1 ₽</strong></li>
           <li>
@@ -138,14 +138,12 @@
 
       <h2 id="получение">Как вы получите заказ (цифровая услуга)</h2>
       <div class="delivery-block" id="доставка">
-        После подтверждения оплаты на сайте открывается <strong>страница с
-        приватным ключом и полным конфигом</strong> (список тарифов —
-        <a href="/pay/">оплата AlesVPN</a>). Тот же доступ по желанию можно
-        оформить в <a href="https://t.me/AlesVPN_bot">Telegram-боте</a> или
-        согласовать по e-mail. Ключ вводится в приложение
-        AlesVPN в настройках, затем на устройстве
-        устанавливается туннель. Физическая доставка и выдача на носителе не
-        осуществляются.
+        На <a href="/pay/">странице оплаты</a> два раздела:
+        <strong>Android</strong> и <strong>iPhone</strong>. После оплаты Android
+        открывается страница с ключом WireGuard; iPhone — со ссылкой для Happ.
+        То же в <a href="https://t.me/AlesVPN_bot">Telegram-боте</a>: кнопки
+        «Android — WireGuard» и «iPhone — Happ». Физическая доставка не
+        осуществляется.
       </div>
 
       <h2 id="зачем">Зачем сайт рядом с ботом</h2>
@@ -168,18 +166,17 @@
         </div>
         <div class="card">
           <div class="ic" aria-hidden="true">⚡</div>
-          <h3>Ключ в приложение</h3>
+          <h3>Android</h3>
           <p>
-            Две строки (ключ и адрес в сети VPN) — в настройки с шестерёнки,
-            затем подключение на устройстве.
+            Две строки (ключ и адрес) — в AlesVPN → шестерёнка, затем
+            подключение.
           </p>
         </div>
         <div class="card">
           <div class="ic" aria-hidden="true">◇</div>
-          <h3>WireGuard</h3>
+          <h3>iPhone</h3>
           <p>
-            Быстрый протокол, без лишней магии: конфиг как у обычного
-            WireGuard-клиента.
+            Ссылка <code>vless://</code> — в Happ → импорт из буфера обмена.
           </p>
         </div>
       </div>
@@ -187,17 +184,15 @@
       <h2 id="шаги">Шаги</h2>
       <ol class="steps">
         <li>
-          Оплати на <a href="/pay/">странице кассы</a> (или в боте) — по ценам
-          из раздела «<a href="#услуги">Услуга и цена</a>», почта
-          внизу страницы.
+          На <a href="/pay/">кассе</a> или в боте выберите
+          <strong>Android</strong> или <strong>iPhone</strong> и тариф.
         </li>
         <li>
-          После оплаты <strong>сайт</strong> покажет две строки (приватный ключ и
-          адрес в сети, например <code>10.8.0.5/32</code>) — сохрани их. Если
-          оформлял в боте, ключ и там.
+          <strong>Android:</strong> сохраните две строки (ключ и IP) → AlesVPN →
+          шестерёнка → подключение.<br />
+          <strong>iPhone:</strong> скопируйте ссылку → App Store → Happ → импорт.
         </li>
-        <li>Открой AlesVPN → <strong>шестерёнка</strong> → вставь две строки → сохрани.</li>
-        <li>На главном экране нажми подключение — туннель поднимается на устройстве.</li>
+        <li>Проверьте, что туннель/профиль активен и сайты открываются.</li>
       </ol>
 
       <h2 id="безопасность">Ключи и данные</h2>
@@ -237,13 +232,8 @@
       (function () {
         var n = document.getElementById("config");
         if (n) {
-          var p = n.getAttribute("data-pay");
           var t = n.getAttribute("data-tg");
           var k = n.getAttribute("data-apk");
-          if (p) {
-            var a = document.getElementById("link-pay");
-            if (a) a.href = p;
-          }
           if (t) {
             var b = document.getElementById("link-tg");
             if (b) b.href = t;

@@ -16,13 +16,19 @@ def _support_html(settings: Settings) -> str:
     return f"\n\nПоддержка: <a href=\"https://t.me/{u}\">@{u}</a>"
 
 
-def _buy_keyboard() -> InlineKeyboardMarkup:
+def _platform_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="💫 Оплатить (Stars)",
-                    callback_data="buy",
+                    text="Android — WireGuard",
+                    callback_data="buy_android",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="iPhone — Happ",
+                    callback_data="buy_ios",
                 ),
             ],
         ],
@@ -33,10 +39,11 @@ def _buy_keyboard() -> InlineKeyboardMarkup:
 async def cmd_start(message: Message, settings: Settings) -> None:
     await message.answer(
         "Привет! Это бот оплаты <b>AlesVPN</b>.\n\n"
-        "Команды:\n"
-        "/buy — счёт на оплату (Telegram Stars)\n"
-        "/help — справка и ваш ID для поддержки",
-        reply_markup=_buy_keyboard(),
+        "Выберите платформу:\n"
+        "• <b>Android</b> — ключ WireGuard (приложение AlesVPN)\n"
+        "• <b>iPhone</b> — ссылка для Happ (vless://)\n\n"
+        "Команды: /buy — оплата, /help — справка",
+        reply_markup=_platform_keyboard(),
     )
 
 
@@ -46,7 +53,9 @@ async def cmd_help(message: Message, settings: Settings) -> None:
     await message.answer(
         f"Ваш Telegram ID: <code>{uid}</code> — сообщите его в поддержке, "
         "если нужно найти ваш платёж.\n\n"
-        "После оплаты через Stars администратор выдаст ключ для приложения.\n"
+        "После оплаты:\n"
+        "• Android — ключ WireGuard в чат\n"
+        "• iPhone — ссылка vless:// для Happ\n"
         "Если что-то пошло не так — укажите ID платежа из чека Telegram."
         + _support_html(settings),
     )

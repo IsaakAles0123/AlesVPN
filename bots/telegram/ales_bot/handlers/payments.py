@@ -1,4 +1,4 @@
-"""Оплата: Telegram Stars (XTR)."""
+﻿"""Оплата: Telegram Stars (XTR). Android = WireGuard, iOS = Happ/VLESS."""
 
 from __future__ import annotations
 
@@ -11,50 +11,93 @@ from aiogram.filters import Command
 from aiogram.types import (
     BufferedInputFile,
     CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
     LabeledPrice,
     Message,
     PreCheckoutQuery,
     User,
 )
 
-from ales_bot.config import Settings, is_admin
+from ales_bot.config import Settings, is_admin, normalize_platform
 from ales_bot.db import (
     allocate_next_octet_async,
     insert_payment_async,
     list_recent_payments_async,
     payment_count_async,
+    update_payment_vless_async,
     update_payment_wg_async,
 )
+from ales_bot.vless_provision import provision_vless_after_payment
 from ales_bot.wg_provision import provision_after_payment
 
 logger = logging.getLogger(__name__)
 
 router = Router(name="payments")
 
-_ADMIN_FREE_PAYLOAD = "admin_free_v1"
+_PAYLOAD_ANDROID = "alesvpn_android_v1"
+_PAYLOAD_IOS = "alesvpn_ios_v1"
+_ADMIN_FREE_ANDROID = "admin_free_android_v1"
+_ADMIN_FREE_IOS = "admin_free_ios_v1"
 
 
-def _stars_prices(settings: Settings) -> list[LabeledPrice]:
-    return [
-        LabeledPrice(
-            label=settings.product_title[:64],
-            amount=settings.price_stars,
-        )
-    ]
+def _platform_from_payload(payload: str) -> str:
+    p = (payload or "").strip().lower()
+    if "ios" in p or "happ" in p:
+        return "ios"
+    return "android"
+
+
+def _payload_for_platform(platform: str, *, free_admin: bool) -> str:
+    if platform == "ios":
+        return _ADMIN_FREE_IOS if free_admin else _PAYLOAD_IOS
+    return _ADMIN_FREE_ANDROID if free_admin else _PAYLOAD_ANDROID
+
+
+def _stars_prices(settings: Settings, label: str) -> list[LabeledPrice]:
+    return [LabeledPrice(label=label[:64], amount=settings.price_stars)]
+
+
+def _platform_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="Android — WireGuard",
+                    callback_data="buy_android",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="iPhone — Happ",
+                    callback_data="buy_ios",
+                ),
+            ],
+        ],
+    )
 
 
 async def _send_invoice(
     chat_id: int,
     bot: Bot,
     settings: Settings,
+    platform: str,
 ) -> None:
+    if platform == "ios":
+        title = "AlesVPN iPhone"
+        desc = "Доступ Happ (VLESS). После оплаты придёт ссылка vless://."
+        payload = _PAYLOAD_IOS
+    else:
+        title = "AlesVPN Android"
+        desc = "Доступ WireGuard для приложения AlesVPN."
+        payload = _PAYLOAD_ANDROID
     await bot.send_invoice(
         chat_id=chat_id,
-        title=settings.product_title[:32],
-        description=settings.product_description[:255],
-        payload=settings.invoice_payload,
+        title=title[:32],
+        description=desc[:255],
+        payload=payload,
         currency="XTR",
-        prices=_stars_prices(settings),
+        prices=_stars_prices(settings, title),
     )
 
 
@@ -70,59 +113,123 @@ async def _deliver_purchase(
     currency: str,
     invoice_payload: str,
     free_admin: bool,
+    platform: str,
 ) -> None:
     uid_line = f"\n\nВаш ID: <code>{uid}</code> — сохраните, если поддержка попросит."
-    wg_admin_extra = ""
+    admin_extra = ""
+    platform = normalize_platform(platform) or "android"
 
-    paid_title = (
-        "Выдача для <b>администратора</b> (без списания Stars)."
-        if free_admin
-        else "Оплата принята. Данные для приложения <b>AlesVPN</b>:"
-    )
-
-    if settings.wg_auto_provision:
-        try:
-            octet = await allocate_next_octet_async(
-                settings.db_path,
-                settings.wg_octet_min,
-                settings.wg_octet_max,
-            )
-            res = await provision_after_payment(settings, octet)
-            await update_payment_wg_async(
-                settings.db_path,
-                telegram_charge_id,
-                wg_public_key=res.public_key,
-                wg_address=res.address_cidr,
-                wg_provision_error=None,
-            )
-        except Exception as e:
-            logger.exception("Автовыдача WireGuard не удалась (ключ или БД)")
-            err_t = str(e)[:800]
-            await update_payment_wg_async(
-                settings.db_path,
-                telegram_charge_id,
-                wg_public_key=None,
-                wg_address=None,
-                wg_provision_error=err_t,
-            )
+    if platform == "ios":
+        paid_title = (
+            "Выдача Happ для <b>администратора</b>."
+            if free_admin
+            else "Оплата принята. Ссылка для <b>Happ (iPhone)</b>:"
+        )
+        if settings.happ_auto_provision:
+            try:
+                res = await provision_vless_after_payment(
+                    settings,
+                    plan_code="stars",
+                    email_prefix=f"tg{uid}",
+                )
+                await update_payment_vless_async(
+                    settings.db_path,
+                    telegram_charge_id,
+                    vless_link=res.link,
+                    vless_uuid=res.uuid,
+                    wg_provision_error=None,
+                )
+            except Exception as e:
+                logger.exception("Автовыдача Happ не удалась")
+                err_t = str(e)[:800]
+                await update_payment_vless_async(
+                    settings.db_path,
+                    telegram_charge_id,
+                    vless_link=None,
+                    vless_uuid=None,
+                    wg_provision_error=err_t,
+                )
+                await message.answer(
+                    (
+                        "Автовыдача Happ сейчас недоступна — проверьте 3x-ui."
+                        if free_admin
+                        else "Оплата прошла. Автовыдача Happ недоступна — "
+                        "администратор отправит ссылку вручную."
+                    )
+                    + uid_line,
+                )
+                admin_extra = f"\n<b>Ошибка Happ</b>: {html.escape(err_t)}"
+            else:
+                link_esc = html.escape(res.link)
+                await message.answer(
+                    f"{paid_title}\n\n"
+                    f"<code>{link_esc}</code>\n\n"
+                    "1) App Store → <b>Happ</b>\n"
+                    "2) Скопируйте ссылку → Happ → импорт из буфера\n"
+                    "3) Включите VPN"
+                    + uid_line,
+                    disable_web_page_preview=True,
+                )
+                admin_extra = (
+                    f"\nHapp email=<code>{html.escape(res.email)}</code> "
+                    f"uuid=<code>{html.escape(res.uuid)}</code>"
+                )
+        else:
             await message.answer(
                 (
-                    "Автовыдача ключа сейчас недоступна — проверьте логи и wg на сервере."
+                    "Для админа: Happ выдаётся вручную (HAPP_AUTO_PROVISION выкл)."
                     if free_admin
-                    else "Оплата прошла успешно. Автовыдача ключа сейчас недоступна — "
-                    "администратор отправит доступ вручную."
+                    else "Оплата прошла. Администратор отправит ссылку Happ вручную."
                 )
                 + uid_line,
             )
-            wg_admin_extra = f"\n<b>Ошибка выдачи / БД</b>: {html.escape(err_t)}"
-        else:
-            paste_esc = html.escape(res.paste_two_lines)
+    else:
+        paid_title = (
+            "Выдача WireGuard для <b>администратора</b>."
+            if free_admin
+            else "Оплата принята. Данные для <b>AlesVPN Android</b>:"
+        )
+        if settings.wg_auto_provision:
             try:
+                octet = await allocate_next_octet_async(
+                    settings.db_path,
+                    settings.wg_octet_min,
+                    settings.wg_octet_max,
+                )
+                res = await provision_after_payment(settings, octet)
+                await update_payment_wg_async(
+                    settings.db_path,
+                    telegram_charge_id,
+                    wg_public_key=res.public_key,
+                    wg_address=res.address_cidr,
+                    wg_provision_error=None,
+                )
+            except Exception as e:
+                logger.exception("Автовыдача WireGuard не удалась")
+                err_t = str(e)[:800]
+                await update_payment_wg_async(
+                    settings.db_path,
+                    telegram_charge_id,
+                    wg_public_key=None,
+                    wg_address=None,
+                    wg_provision_error=err_t,
+                )
+                await message.answer(
+                    (
+                        "Автовыдача WG сейчас недоступна."
+                        if free_admin
+                        else "Оплата прошла. Автовыдача ключа недоступна — "
+                        "администратор отправит доступ вручную."
+                    )
+                    + uid_line,
+                )
+                admin_extra = f"\n<b>Ошибка WG</b>: {html.escape(err_t)}"
+            else:
+                paste_esc = html.escape(res.paste_two_lines)
                 await message.answer(
                     f"{paid_title}\n\n"
                     f"<pre>{paste_esc}</pre>\n\n"
-                    "В приложении откройте настройку ключа и вставьте <b>две строки</b> "
-                    "(приватный ключ и адрес). Ниже — полный файл для импорта в WireGuard."
+                    "Вставьте <b>две строки</b> в AlesVPN или импортируйте .conf."
                     + uid_line,
                 )
                 await message.answer_document(
@@ -130,47 +237,27 @@ async def _deliver_purchase(
                         res.conf_text.encode("utf-8"),
                         filename="alesvpn.conf",
                     ),
-                    caption="Импорт в WireGuard или сохраните как текст конфигурации.",
+                    caption="Импорт в WireGuard.",
                 )
-            except Exception as e:
-                err_t = str(e)[:800]
-                logger.exception("Ключ в БД, но отправка в Telegram не удалась (таймаут/сеть)")
-                wg_admin_extra = (
-                    f"\nWG: <code>{html.escape(res.address_cidr)}</code> "
-                    f"pub <code>{html.escape(res.public_key)}</code>\n"
-                    f"<b>Ошибка Telegram API</b>: {html.escape(err_t)}"
-                )
-                try:
-                    await message.answer(
-                        "Ключ уже создан, но доставка в чат сорвалась (сеть или Telegram). "
-                        "Повторите /start — напишите в поддержку, пришлём вручную."
-                        + uid_line,
-                    )
-                except Exception:
-                    logger.warning("Не удалось ни ключ с файлом, ни короткое уведомление")
-            else:
-                wg_admin_extra = (
+                admin_extra = (
                     f"\nWG: <code>{html.escape(res.address_cidr)}</code> "
                     f"pub <code>{html.escape(res.public_key)}</code>"
                 )
-    else:
-        await message.answer(
-            (
-                "Для администратора счёт не требуется. Ключ выдаётся вручную."
-                if free_admin
-                else "Оплата прошла успешно. Администратор скоро отправит данные для входа в VPN."
+        else:
+            await message.answer(
+                (
+                    "WG выдаётся вручную (WG_AUTO_PROVISION выкл)."
+                    if free_admin
+                    else "Оплата прошла. Администратор отправит ключ WireGuard вручную."
+                )
+                + uid_line,
             )
-            + uid_line,
-        )
 
     user_link = f'<a href="tg://user?id={uid}">профиль</a>' if uid else "—"
-    header = (
-        "Бесплатная выдача (админ)"
-        if free_admin
-        else "Новая оплата (Stars)"
-    )
+    header = "Бесплатная выдача (админ)" if free_admin else "Новая оплата (Stars)"
     lines = [
         header,
+        f"platform: <b>{html.escape(platform)}</b>",
         f"user_id: <code>{uid}</code> ({user_link})",
     ]
     if uname:
@@ -182,10 +269,9 @@ async def _deliver_purchase(
             f"telegram_charge_id: <code>{html.escape(telegram_charge_id)}</code>",
         ]
     )
-    if wg_admin_extra:
-        lines.append(wg_admin_extra)
+    if admin_extra:
+        lines.append(admin_extra)
     admin_text = "\n".join(lines)
-
     for admin_id in settings.admin_ids:
         try:
             await bot.send_message(admin_id, admin_text)
@@ -197,17 +283,19 @@ async def _try_admin_free_buy(
     message: Message,
     bot: Bot,
     settings: Settings,
+    platform: str,
     *,
     actor: User | None = None,
 ) -> bool:
-    """Если пользователь — админ, выдаём доступ за 0 Stars. Возвращает True, если обработано."""
     user = actor or message.from_user
     uid = user.id if user else 0
     if not uid or not is_admin(uid, settings):
         return False
 
+    plat = normalize_platform(platform) or "android"
     uname = user.username if user else None
-    charge_id = f"admin_free_{uid}_{uuid.uuid4().hex[:16]}"
+    charge_id = f"admin_free_{plat}_{uid}_{uuid.uuid4().hex[:12]}"
+    payload = _payload_for_platform(plat, free_admin=True)
 
     inserted = await insert_payment_async(
         settings.db_path,
@@ -216,7 +304,8 @@ async def _try_admin_free_buy(
         username=uname,
         amount=0,
         currency="XTR",
-        invoice_payload=_ADMIN_FREE_PAYLOAD,
+        invoice_payload=payload,
+        platform=plat,
     )
     if not inserted:
         await message.answer("Не удалось записать выдачу. Попробуйте /buy ещё раз.")
@@ -231,42 +320,56 @@ async def _try_admin_free_buy(
         telegram_charge_id=charge_id,
         amount=0,
         currency="XTR",
-        invoice_payload=_ADMIN_FREE_PAYLOAD,
+        invoice_payload=payload,
         free_admin=True,
+        platform=plat,
     )
     return True
 
 
 @router.message(Command("buy"))
-async def cmd_buy(message: Message, bot: Bot, settings: Settings) -> None:
-    if await _try_admin_free_buy(message, bot, settings):
-        return
-    await _send_invoice(message.chat.id, bot, settings)
+async def cmd_buy(message: Message, settings: Settings) -> None:
+    await message.answer(
+        "Выберите платформу:\n"
+        "• <b>Android</b> — ключ WireGuard для AlesVPN\n"
+        "• <b>iPhone</b> — ссылка Happ (vless://)",
+        reply_markup=_platform_keyboard(),
+    )
 
 
-@router.callback_query(F.data == "buy")
+@router.callback_query(F.data.in_({"buy", "buy_android", "buy_ios"}))
 async def callback_buy(query: CallbackQuery, bot: Bot, settings: Settings) -> None:
     await query.answer()
     if query.message is None:
         return
+    data = query.data or "buy_android"
+    if data == "buy":
+        await query.message.answer(
+            "Выберите платформу:",
+            reply_markup=_platform_keyboard(),
+        )
+        return
+    platform = "ios" if data == "buy_ios" else "android"
     if query.from_user and is_admin(query.from_user.id, settings):
         if await _try_admin_free_buy(
             query.message,
             bot,
             settings,
+            platform,
             actor=query.from_user,
         ):
             return
-    await _send_invoice(query.message.chat.id, bot, settings)
+    await _send_invoice(query.message.chat.id, bot, settings, platform)
 
 
 @router.pre_checkout_query()
 async def pre_checkout(query: PreCheckoutQuery, bot: Bot, settings: Settings) -> None:
-    if query.invoice_payload != settings.invoice_payload:
+    ok_payloads = {_PAYLOAD_ANDROID, _PAYLOAD_IOS, settings.invoice_payload}
+    if query.invoice_payload not in ok_payloads:
         await bot.answer_pre_checkout_query(
             query.id,
             ok=False,
-            error_message="Неверный счёт. Запросите оплату снова (/buy или кнопка).",
+            error_message="Неверный счёт. Запросите оплату снова (/buy).",
         )
         return
     await bot.answer_pre_checkout_query(query.id, ok=True)
@@ -280,6 +383,7 @@ async def successful_payment(message: Message, settings: Settings, bot: Bot) -> 
 
     uid = message.from_user.id if message.from_user else 0
     uname = message.from_user.username if message.from_user else None
+    platform = _platform_from_payload(sp.invoice_payload)
 
     inserted = await insert_payment_async(
         settings.db_path,
@@ -289,6 +393,7 @@ async def successful_payment(message: Message, settings: Settings, bot: Bot) -> 
         amount=sp.total_amount,
         currency=sp.currency,
         invoice_payload=sp.invoice_payload,
+        platform=platform,
     )
     if not inserted:
         logger.warning(
@@ -311,6 +416,7 @@ async def successful_payment(message: Message, settings: Settings, bot: Bot) -> 
         currency=sp.currency,
         invoice_payload=sp.invoice_payload,
         free_admin=False,
+        platform=platform,
     )
 
 
@@ -329,9 +435,7 @@ async def cmd_stats(message: Message, settings: Settings) -> None:
     for r in rows:
         uname = f"@{html.escape(r.username)}" if r.username else "—"
         ch = html.escape(r.telegram_charge_id)
-        wg = ""
-        if r.wg_address:
-            wg = f" | WG {html.escape(r.wg_address)}"
+        wg = f" | WG {html.escape(r.wg_address)}" if r.wg_address else ""
         lines.append(
             f"{html.escape(r.created_at)} | <code>{r.user_id}</code> {uname} | "
             f"{r.amount} {html.escape(r.currency)}{wg}\n<code>{ch}</code>"

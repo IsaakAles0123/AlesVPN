@@ -1,5 +1,9 @@
 """
-AlesVPN: YooKassa (веб) → редирект в кассу → return → WireGuard и страница /pay/done?t=.
+AlesVPN: YooKassa (веб) → редирект в кассу → return → доступ и страница /pay/done?t=.
+
+Платформы:
+  • android — WireGuard (WG_AUTO_PROVISION)
+  • ios — Happ / VLESS Reality (HAPP_AUTO_PROVISION + 3x-ui)
 
 Uvicorn (1 worker, тот же .env что у бота + YOOKASSA_*):
   set PAY_API_MODE=1
@@ -34,8 +38,9 @@ if str(_T) not in sys.path:
 
 import asyncio
 
-from ales_bot.config import load_settings
+from ales_bot.config import load_settings, normalize_platform
 from ales_bot.db import allocate_next_octet_async, init_db, init_db_async
+from ales_bot.vless_provision import VlessProvisionError, provision_vless_after_payment
 from ales_bot.wg_provision import WgProvisionError, provision_after_payment
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
@@ -54,6 +59,7 @@ from yk_store import (
     normalize_email,
     set_provision_error,
     set_provision_ok,
+    set_provision_vless_ok,
 )
 
 log = logging.getLogger("pay_api")
@@ -167,6 +173,16 @@ def _q_pid(request: Request) -> str | None:
     return None
 
 
+def _order_has_access(row) -> bool:
+    if not row:
+        return False
+    if (row.vless_link or "").strip():
+        return True
+    if (row.paste_two_lines or "").strip() and (row.conf_text or "").strip():
+        return True
+    return False
+
+
 def _redir_to_key(row) -> RedirectResponse:
     return RedirectResponse(f"{BASE_URL}/pay/done?t={row.return_token}", 302)
 
@@ -193,36 +209,56 @@ def _yoo_currency(pay: Any) -> str:
 
 async def _do_provision(yk_id: str) -> str | None:
     """
-    Выдать ключ при успехе. Вернуть None при успехе, иначе текст ошибки для HTML.
+    Выдать доступ при успехе. Вернуть None при успехе, иначе текст ошибки для HTML.
+    platform=ios → Happ/VLESS; android → WireGuard.
     """
     s = load_settings()
     p = s.db_path
-    if not s.wg_auto_provision:
-        e = "Автовыдача отключена (WG_AUTO_PROVISION)."
-        await asyncio.to_thread(set_provision_error, p, yk_id, e)
-        return e
-
     async with _provision_lock:
         r0 = await asyncio.to_thread(get_by_yk_id, p, yk_id)
-        if r0 and r0.paste_two_lines and r0.conf_text:
+        if r0 and _order_has_access(r0):
             return None
         if r0 and (r0.provision_error or "").strip():
             return (r0.provision_error or "")[:800]
+
+        platform = normalize_platform(getattr(r0, "platform", None) if r0 else None) or "android"
+
         try:
-            octet = await allocate_next_octet_async(
-                p, s.wg_octet_min, s.wg_octet_max
-            )
-            res = await provision_after_payment(s, octet)
-        except (WgProvisionError, OSError, RuntimeError) as e:
+            if platform == "ios":
+                if not s.happ_auto_provision:
+                    e = "Автовыдача Happ выключена (HAPP_AUTO_PROVISION)."
+                    await asyncio.to_thread(set_provision_error, p, yk_id, e)
+                    return e
+                prefix = "web"
+                if r0 and r0.customer_email:
+                    prefix = (r0.customer_email.split("@")[0] or "web")[:16]
+                res = await provision_vless_after_payment(
+                    s,
+                    plan_code=(r0.plan_code if r0 else "monthly"),
+                    email_prefix=prefix,
+                )
+                await asyncio.to_thread(set_provision_vless_ok, p, yk_id, res.link)
+            else:
+                if not s.wg_auto_provision:
+                    e = "Автовыдача WireGuard выключена (WG_AUTO_PROVISION)."
+                    await asyncio.to_thread(set_provision_error, p, yk_id, e)
+                    return e
+                octet = await allocate_next_octet_async(
+                    p, s.wg_octet_min, s.wg_octet_max
+                )
+                res_wg = await provision_after_payment(s, octet)
+                await asyncio.to_thread(
+                    set_provision_ok,
+                    p,
+                    yk_id,
+                    res_wg.paste_two_lines,
+                    res_wg.conf_text,
+                )
+        except (WgProvisionError, VlessProvisionError, OSError, RuntimeError) as e:
             msg = f"Платёж принят, но сервер ключа: {e!r}"[:1000]
-            log.exception("WireGuard: %s", e)
+            log.exception("Provision (%s): %s", platform, e)
             await asyncio.to_thread(set_provision_error, p, yk_id, str(e)[:800])
             return msg
-        won = await asyncio.to_thread(
-            set_provision_ok, p, yk_id, res.paste_two_lines, res.conf_text
-        )
-        if not won:
-            return None
     return None
 
 
@@ -237,7 +273,7 @@ async def _html_after_paid(yk_id: str) -> RedirectResponse | HTMLResponse:
             ),
             404,
         )
-    if row.paste_two_lines and row.conf_text:
+    if _order_has_access(row):
         return _redir_to_key(row)
 
     pay = await _yoo_get(yk_id)
@@ -265,7 +301,7 @@ async def _html_after_paid(yk_id: str) -> RedirectResponse | HTMLResponse:
     await asyncio.to_thread(_maybe_redeem_first_rub_sync, s.db_path, yk_id)
     err = await _do_provision(yk_id)
     row2 = get_by_yk_id(s.db_path, yk_id)
-    if row2 and row2.paste_two_lines and row2.conf_text:
+    if row2 and _order_has_access(row2):
         return _redir_to_key(row2)
     if err:
         return HTMLResponse(
@@ -315,15 +351,27 @@ async def pay_done(t: str | None = None) -> Any:
             _html("Ссылка", "<h1>Ссылка недействительна или уже использована</h1>"),
             410,
         )
-    if (row.provision_error or "").strip() and not (
-        row.paste_two_lines
-    ):
+    if (row.provision_error or "").strip() and not _order_has_access(row):
         return HTMLResponse(
             _html(
                 "Ключ",
                 f"<h1>Выдача</h1><p class='sub'>{escape((row.provision_error or '')[:2000])}</p>",
             ),
         )
+    platform = normalize_platform(row.platform) or "android"
+    if platform == "ios" and (row.vless_link or "").strip():
+        link = html.escape(row.vless_link or "")
+        inner = f"""
+<h1>Доступ AlesVPN — iPhone (Happ)</h1>
+<p class="sub">Сохраните ссылку. Страница одноразовая.</p>
+<p class="sub">1) Установите приложение <b>Happ</b> из App Store.<br>
+2) Скопируйте ссылку ниже → Happ → импорт из буфера.<br>
+3) Включите VPN. Отпечаток в конфиге — safari.</p>
+<h2>Ссылка vless://</h2>
+<pre class="security" style="text-align:left;user-select:all;white-space:pre-wrap;word-break:break-all">{link}</pre>
+<p class="sub"><a href='{BASE_URL}/'>на главную</a></p>
+"""
+        return HTMLResponse(_html("Ключ iOS", inner), headers={"Cache-Control": "no-store"})
     if not row.paste_two_lines or not row.conf_text:
         return HTMLResponse(
             _html(
@@ -336,15 +384,16 @@ async def pay_done(t: str | None = None) -> Any:
     pe = html.escape(row.paste_two_lines)
     conf = html.escape(row.conf_text or "")
     inner = f"""
-<h1>Ключ AlesVPN</h1>
+<h1>Доступ AlesVPN — Android (WireGuard)</h1>
 <p class="sub">Сохраните данные. Ссылка одноразовая и больше не откроется после этой страницы.</p>
-<h2>Две строки(скопируй&nbsp;их!!!)</h2>
+<p class="sub">В приложении AlesVPN вставьте <b>две строки</b> (ключ и адрес) или импортируйте .conf в WireGuard.</p>
+<h2>Две строки (скопируй&nbsp;их!!!)</h2>
 <pre class="security" style="text-align:left;user-select:all;white-space:pre-wrap;word-break:break-all">{pe}</pre>
 <h2>Конфиг WireGuard (.conf)</h2>
 <pre class="security" style="text-align:left;user-select:all;white-space:pre-wrap;word-break:break-all">{conf}</pre>
 <p class="sub"><a href='{BASE_URL}/'>на главную</a></p>
 """
-    return HTMLResponse(_html("Ключ", inner), headers={"Cache-Control": "no-store"})
+    return HTMLResponse(_html("Ключ Android", inner), headers={"Cache-Control": "no-store"})
 
 
 @app.get("/pay/download-conf")
@@ -359,6 +408,7 @@ async def pay_download_conf(t: str | None = None) -> Any:
 @app.get("/pay/buy", response_class=HTMLResponse)
 async def pay_buy(
     plan: str = "monthly",
+    platform: str = "android",
     email: str | None = Query(None, description="E-mail для учёта «1 ₽ — первый месяц»"),
 ) -> Any:
     if not (SHOP_ID and SECRET):
@@ -374,6 +424,7 @@ async def pay_buy(
             _html("Тариф", "<h1>Нет такого плана</h1>"),
             400,
         )
+    plat = normalize_platform(platform) or "android"
     customer_email: str | None = None
     if pl == "first":
         en = normalize_email(email or "")
@@ -382,8 +433,7 @@ async def pay_buy(
                 _html(
                     "E-mail",
                     f"<h1>Первый месяц за 1&nbsp;₽</h1>"
-                    f"<p class='sub'>Укажите корректный e-mail на <a href='{BASE_URL}/pay/'>странице оплаты</a> — "
-                    f"по нему отмечаем, что акция «1&nbsp;₽» ещё не использовалась.</p>"
+                    f"<p class='sub'>Укажите корректный e-mail на <a href='{BASE_URL}/pay/?platform={plat}'>странице оплаты</a>.</p>"
                     f"<p class='sub'><a href='{BASE_URL}/pay/'>← к тарифам</a></p>",
                 ),
                 400,
@@ -397,7 +447,7 @@ async def pay_buy(
                     f"<h1>Акция 1&nbsp;₽ уже использована</h1>"
                     f"<p class='sub'>Для <code>{escape(en)}</code> первый месяц за 1&nbsp;₽ уже оформляли. "
                     f"Продлите за 99&nbsp;₽.</p>"
-                    f"<p><a class='btn btn-main' href='{BASE_URL}/pay/buy?plan=monthly'>"
+                    f"<p><a class='btn btn-main' href='{BASE_URL}/pay/buy?plan=monthly&platform={plat}'>"
                     f"99&nbsp;₽ — месяц</a></p>"
                     f"<p class='sub'><a href='{BASE_URL}/pay/'>все тарифы</a></p>",
                 ),
@@ -405,13 +455,15 @@ async def pay_buy(
             )
         customer_email = en
     amount, desc = PLANS[pl]
+    plat_label = "iPhone (Happ)" if plat == "ios" else "Android (WireGuard)"
+    desc = f"{desc} [{plat_label}]"
     idem = str(uuid.uuid4())
     return_token = secrets.token_urlsafe(32)
-    # ЮKassa не всегда дописывает paymentId к return; свой ret = return_token — однозначный поиск в БД.
     r_url = f"{BASE_URL}/pay/return?{urlencode({'ret': return_token})}"
     meta: dict[str, str] = {
         "plan": pl,
         "ret": return_token,
+        "platform": plat,
     }
     if pl == "first" and customer_email:
         meta["email"] = customer_email
@@ -454,6 +506,7 @@ async def pay_buy(
             return_token=return_token,
             status="created",
             customer_email=customer_email,
+            platform=plat,
         )
     except RuntimeError as e:
         log.error("order insert: %s", e)
@@ -481,21 +534,36 @@ async def pay_buy(
     return RedirectResponse(c_url, 302)
 
 
+def _plan_buttons(b: str, plat: str) -> str:
+    return f"""
+<form class="sub" method="get" action="{b}/pay/buy" style="max-width:22rem;margin:1rem 0">
+  <input type="hidden" name="plan" value="first" />
+  <input type="hidden" name="platform" value="{plat}" />
+  <label for="pemail-{plat}">E-mail</label>
+  <input type="email" name="email" id="pemail-{plat}" required placeholder="name@mail.ru" autocomplete="email" style="width:100%;margin:0.4rem 0" />
+  <p><button type="submit" class="btn btn-main" style="width:100%;border:none;cursor:pointer">1&nbsp;₽ — первый месяц</button></p>
+</form>
+<p><a class="btn btn-main" href="{b}/pay/buy?plan=monthly&platform={plat}">99&nbsp;₽ — месяц</a></p>
+<p><a class="btn btn-main" href="{b}/pay/buy?plan=m6&platform={plat}">499&nbsp;₽ — 6 месяцев</a></p>
+<p><a class="btn btn-main" href="{b}/pay/buy?plan=m12&platform={plat}">999&nbsp;₽ — 12 месяцев</a></p>
+"""
+
+
 def _pay_index_body() -> str:
     b = BASE_URL
     return f"""
 <h1>Оплата AlesVPN</h1>
-<p class="sub">Оплата в ЮKassa, затем — страница с ключом.</p>
-<p class="sub">Первый месяц за 1&nbsp;₽ — один раз на e-mail. Укажите тот же адрес, что в чеке, если касса попросит.</p>
-<form class="sub" method="get" action="{b}/pay/buy" style="max-width:22rem;margin:1rem 0">
-  <input type="hidden" name="plan" value="first" />
-  <label for="pemail">E-mail</label>
-  <input type="email" name="email" id="pemail" required placeholder="name@mail.ru" autocomplete="email" style="width:100%;margin:0.4rem 0" />
-  <p><button type="submit" class="btn btn-main" style="width:100%;border:none;cursor:pointer">1&nbsp;₽ — первый месяц</button></p>
-</form>
-<p><a class="btn btn-main" href="{b}/pay/buy?plan=monthly">99&nbsp;₽ — месяц</a></p>
-<p><a class="btn btn-main" href="{b}/pay/buy?plan=m6">499&nbsp;₽ — 6 месяцев</a></p>
-<p><a class="btn btn-main" href="{b}/pay/buy?plan=m12">999&nbsp;₽ — 12 месяцев</a></p>
+<p class="sub">Выберите платформу — выдаётся разный доступ.</p>
+<p class="sub">Первый месяц за 1&nbsp;₽ — один раз на e-mail.</p>
+
+<h2 id="android">Android — приложение AlesVPN / WireGuard</h2>
+<p class="sub">После оплаты получите ключ WireGuard для Android.</p>
+{_plan_buttons(b, "android")}
+
+<h2 id="ios">iPhone — приложение Happ</h2>
+<p class="sub">После оплаты получите ссылку <code>vless://</code> для импорта в Happ.</p>
+{_plan_buttons(b, "ios")}
+
 <p class="sub"><a href="{b}/">на главную</a></p>
 """
 

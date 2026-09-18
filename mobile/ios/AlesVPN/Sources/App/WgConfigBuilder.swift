@@ -2,8 +2,8 @@ import Foundation
 
 /// Параметры сервера — совпадают с `res/values/strings.xml` на Android; обновляйте вместе.
 enum WgVendorConfig {
-    static let serverPublicKey = "Rc1neiBkkHNmwFV/2YiWsVJyEc9V0rQm03QnMaWR7Qs="
-    static let endpoint = "5.42.122.172:51820"
+    static let serverPublicKey = "ggAlrSljMJUtiy+ceE3cIZOoV6+q2hyVzJbaKujmFXA="
+    static let endpoint = "186.246.24.7:51820"
     static let dns = "1.1.1.1"
     static let allowedIPs = "0.0.0.0/0, ::/0"
     static let persistentKeepalive = "25"

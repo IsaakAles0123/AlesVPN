@@ -25,6 +25,12 @@ def _migrate_payments(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE payments ADD COLUMN wg_address TEXT")
     if "wg_provision_error" not in names:
         conn.execute("ALTER TABLE payments ADD COLUMN wg_provision_error TEXT")
+    if "platform" not in names:
+        conn.execute("ALTER TABLE payments ADD COLUMN platform TEXT DEFAULT 'android'")
+    if "vless_link" not in names:
+        conn.execute("ALTER TABLE payments ADD COLUMN vless_link TEXT")
+    if "vless_uuid" not in names:
+        conn.execute("ALTER TABLE payments ADD COLUMN vless_uuid TEXT")
 
 
 def init_db(path: Path, *, wg_first_octet: int = 20) -> None:
@@ -76,6 +82,7 @@ def insert_payment(
     amount: int,
     currency: str,
     invoice_payload: str,
+    platform: str = "android",
 ) -> bool:
     """True если строка добавлена, False при повторном charge_id."""
     conn = _connect(path)
@@ -85,9 +92,9 @@ def insert_payment(
                 """
                 INSERT INTO payments (
                     telegram_charge_id, user_id, username,
-                    amount, currency, invoice_payload
+                    amount, currency, invoice_payload, platform
                 )
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     telegram_charge_id,
@@ -96,6 +103,7 @@ def insert_payment(
                     amount,
                     currency,
                     invoice_payload,
+                    platform,
                 ),
             )
             conn.commit()
@@ -123,6 +131,29 @@ def update_payment_wg(
             WHERE telegram_charge_id = ?
             """,
             (wg_public_key, wg_address, wg_provision_error, telegram_charge_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def update_payment_vless(
+    path: Path,
+    telegram_charge_id: str,
+    *,
+    vless_link: str | None,
+    vless_uuid: str | None,
+    wg_provision_error: str | None,
+) -> None:
+    conn = _connect(path)
+    try:
+        conn.execute(
+            """
+            UPDATE payments
+            SET vless_link = ?, vless_uuid = ?, wg_provision_error = ?
+            WHERE telegram_charge_id = ?
+            """,
+            (vless_link, vless_uuid, wg_provision_error, telegram_charge_id),
         )
         conn.commit()
     finally:
@@ -227,6 +258,7 @@ async def insert_payment_async(
     amount: int,
     currency: str,
     invoice_payload: str,
+    platform: str = "android",
 ) -> bool:
     return await asyncio.to_thread(
         insert_payment,
@@ -237,6 +269,7 @@ async def insert_payment_async(
         amount=amount,
         currency=currency,
         invoice_payload=invoice_payload,
+        platform=platform,
     )
 
 
@@ -254,6 +287,24 @@ async def update_payment_wg_async(
         telegram_charge_id,
         wg_public_key=wg_public_key,
         wg_address=wg_address,
+        wg_provision_error=wg_provision_error,
+    )
+
+
+async def update_payment_vless_async(
+    path: Path,
+    telegram_charge_id: str,
+    *,
+    vless_link: str | None,
+    vless_uuid: str | None,
+    wg_provision_error: str | None,
+) -> None:
+    await asyncio.to_thread(
+        update_payment_vless,
+        path,
+        telegram_charge_id,
+        vless_link=vless_link,
+        vless_uuid=vless_uuid,
         wg_provision_error=wg_provision_error,
     )
 

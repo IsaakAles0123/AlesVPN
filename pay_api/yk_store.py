@@ -35,6 +35,8 @@ class YkOrderRow:
     provision_error: str | None
     first_view_at: str | None
     customer_email: str | None
+    platform: str | None = None
+    vless_link: str | None = None
 
 
 def _connect(path: Path) -> sqlite3.Connection:
@@ -76,6 +78,18 @@ def init_yk(db_path: Path) -> None:
                 conn.execute("ALTER TABLE yookassa_web ADD COLUMN customer_email TEXT")
             except sqlite3.OperationalError:
                 pass
+        if "platform" not in have:
+            try:
+                conn.execute(
+                    "ALTER TABLE yookassa_web ADD COLUMN platform TEXT DEFAULT 'android'"
+                )
+            except sqlite3.OperationalError:
+                pass
+        if "vless_link" not in have:
+            try:
+                conn.execute("ALTER TABLE yookassa_web ADD COLUMN vless_link TEXT")
+            except sqlite3.OperationalError:
+                pass
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS pay_first_rub_redeemed (
@@ -99,6 +113,7 @@ def insert_order(
     return_token: str,
     status: str = "created",
     customer_email: str | None = None,
+    platform: str = "android",
 ) -> None:
     conn = _connect(path)
     try:
@@ -106,16 +121,32 @@ def insert_order(
         conn.execute(
             """
             INSERT INTO yookassa_web
-            (yk_id, plan_code, amount_value, return_token, status, customer_email)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (yk_id, plan_code, amount_value, return_token, status, customer_email, platform)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (yk_id, plan_code, amount_value, return_token, status, customer_email),
+            (
+                yk_id,
+                plan_code,
+                amount_value,
+                return_token,
+                status,
+                customer_email,
+                platform,
+            ),
         )
         conn.commit()
     except sqlite3.IntegrityError as e:
         raise RuntimeError(f"Заказ {yk_id!r} уже есть: {e}") from e
     finally:
         conn.close()
+
+
+def _row_to_order(row: tuple) -> YkOrderRow:
+    # backward-compatible: old SELECTs without platform/vless_link
+    vals = list(row)
+    while len(vals) < 12:
+        vals.append(None)
+    return YkOrderRow(*vals[:12])
 
 
 def get_by_yk_id(path: Path, yk_id: str) -> YkOrderRow | None:
@@ -125,7 +156,7 @@ def get_by_yk_id(path: Path, yk_id: str) -> YkOrderRow | None:
             """
             SELECT yk_id, plan_code, amount_value, return_token, status,
                    paste_two_lines, conf_text, provision_error, first_view_at,
-                   customer_email
+                   customer_email, platform, vless_link
             FROM yookassa_web
             WHERE yk_id = ?
             """,
@@ -133,7 +164,7 @@ def get_by_yk_id(path: Path, yk_id: str) -> YkOrderRow | None:
         ).fetchone()
         if not row:
             return None
-        return YkOrderRow(*row)
+        return _row_to_order(row)
     finally:
         conn.close()
 
@@ -145,7 +176,7 @@ def get_by_token(path: Path, token: str) -> YkOrderRow | None:
             """
             SELECT yk_id, plan_code, amount_value, return_token, status,
                    paste_two_lines, conf_text, provision_error, first_view_at,
-                   customer_email
+                   customer_email, platform, vless_link
             FROM yookassa_web
             WHERE return_token = ?
             """,
@@ -153,7 +184,7 @@ def get_by_token(path: Path, token: str) -> YkOrderRow | None:
         ).fetchone()
         if not row:
             return None
-        return YkOrderRow(*row)
+        return _row_to_order(row)
     finally:
         conn.close()
 
@@ -171,7 +202,7 @@ def consume_token_once(path: Path, token: str) -> YkOrderRow | None:
             """
             SELECT yk_id, plan_code, amount_value, return_token, status,
                    paste_two_lines, conf_text, provision_error, first_view_at,
-                   customer_email
+                   customer_email, platform, vless_link
             FROM yookassa_web
             WHERE return_token = ?
               AND (first_view_at IS NULL OR TRIM(first_view_at) = '')
@@ -191,7 +222,7 @@ def consume_token_once(path: Path, token: str) -> YkOrderRow | None:
             (token,),
         )
         conn.execute("COMMIT")
-        return YkOrderRow(*row)
+        return _row_to_order(row)
     except Exception:
         try:
             conn.execute("ROLLBACK")
@@ -244,7 +275,7 @@ def set_provision_ok(
     paste: str,
     conf: str,
 ) -> bool:
-    """True, если эта вставка выиграла гонку (rowcount=1)."""
+    """True, если эта вставка выиграла гонку (rowcount=1). Android / WireGuard."""
     conn = _connect(path)
     try:
         cur = conn.execute(
@@ -252,8 +283,29 @@ def set_provision_ok(
             UPDATE yookassa_web
             SET paste_two_lines = ?, conf_text = ?, provision_error = NULL
             WHERE yk_id = ? AND (paste_two_lines IS NULL OR TRIM(paste_two_lines) = '')
+              AND (vless_link IS NULL OR TRIM(vless_link) = '')
             """,
             (paste, conf, yk_id),
+        )
+        n = cur.rowcount if cur else 0
+        conn.commit()
+        return n > 0
+    finally:
+        conn.close()
+
+
+def set_provision_vless_ok(path: Path, yk_id: str, vless_link: str) -> bool:
+    """True, если эта вставка выиграла гонку. iOS / Happ."""
+    conn = _connect(path)
+    try:
+        cur = conn.execute(
+            """
+            UPDATE yookassa_web
+            SET vless_link = ?, provision_error = NULL
+            WHERE yk_id = ? AND (vless_link IS NULL OR TRIM(vless_link) = '')
+              AND (paste_two_lines IS NULL OR TRIM(paste_two_lines) = '')
+            """,
+            (vless_link, yk_id),
         )
         n = cur.rowcount if cur else 0
         conn.commit()
@@ -273,7 +325,9 @@ def set_provision_error(
             """
             UPDATE yookassa_web
             SET provision_error = ?
-            WHERE yk_id = ? AND (paste_two_lines IS NULL OR TRIM(paste_two_lines) = '')
+            WHERE yk_id = ?
+              AND (paste_two_lines IS NULL OR TRIM(paste_two_lines) = '')
+              AND (vless_link IS NULL OR TRIM(vless_link) = '')
             """,
             (err, yk_id),
         )

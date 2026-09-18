@@ -24,8 +24,8 @@
     <string name="ales_purchase_url" translatable="false">https://alesvpn.ru/</string>
 
     <!-- Должен совпадать с «interface: public key» на сервере (sudo wg). -->
-    <string name="wg_vendor_server_public_key" translatable="false">Rc1neiBkkHNmwFV/2YiWsVJyEc9V0rQm03QnMaWR7Qs=</string>
-    <string name="wg_vendor_endpoint" translatable="false">5.42.122.172:51820</string>
+    <string name="wg_vendor_server_public_key" translatable="false">ggAlrSljMJUtiy+ceE3cIZOoV6+q2hyVzJbaKujmFXA=</string>
+    <string name="wg_vendor_endpoint" translatable="false">186.246.24.7:51820</string>
     <string name="wg_vendor_dns" translatable="false">1.1.1.1</string>
     <string name="wg_vendor_allowed_ips" translatable="false">0.0.0.0/0, ::/0</string>
     <string name="wg_vendor_persistent_keepalive" translatable="false">25</string>
@@ -39,6 +39,4 @@
     <string name="dashboard_tap_to_connect">Нажмите, чтобы подключить</string>
     <string name="dashboard_tap_to_disconnect">Нажмите, чтобы отключить</string>
     <string name="dashboard_connect_fist_cd">Подключить или отключить VPN</string>
-    <string name="dashboard_dobok_vpn_on_cd">Добок с чёрным поясом, VPN подключён</string>
-    <string name="dashboard_dobok_vpn_off_cd">Добок с белым поясом, VPN отключён</string>
 </resources>
