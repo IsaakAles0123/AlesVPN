@@ -1,4 +1,4 @@
-﻿"""Оплата: ЮKassa СБП. Android = WireGuard, iOS = Happ/VLESS."""
+"""Оплата: ЮKassa СБП. Выдача Happ/VLESS; Android — по ANDROID_DELIVERY."""
 
 from __future__ import annotations
 
@@ -22,15 +22,17 @@ from ales_bot.config import Settings, is_admin, normalize_platform
 from ales_bot.db import (
     allocate_next_octet_async,
     get_bot_yk_order_async,
+    get_subscription_async,
     insert_bot_yk_order_async,
     insert_payment_async,
-    list_recent_payments_async,
-    payment_count_async,
     set_bot_yk_order_status_async,
     update_payment_vless_async,
     update_payment_wg_async,
+    upsert_subscription_async,
 )
-from ales_bot.vless_provision import provision_vless_after_payment
+from ales_bot.handlers.cabinet import back_keyboard, fmt_expiry
+from ales_bot.happ_guide import send_happ_access
+from ales_bot.vless_provision import ExistingClient, provision_vless_after_payment
 from ales_bot.wg_provision import provision_after_payment
 from ales_bot.yk_sbp import (
     create_sbp_payment,
@@ -66,12 +68,21 @@ def _payload_for_platform(platform: str, *, free_admin: bool) -> str:
     return _ADMIN_FREE_ANDROID if free_admin else _PAYLOAD_ANDROID
 
 
-def _platform_keyboard() -> InlineKeyboardMarkup:
+def _uses_happ(platform: str, settings: Settings) -> bool:
+    return platform == "ios" or settings.android_delivery == "happ"
+
+
+def _platform_keyboard(settings: Settings) -> InlineKeyboardMarkup:
+    android_text = (
+        "Android — Happ"
+        if settings.android_delivery == "happ"
+        else "Android — WireGuard"
+    )
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="Android — WireGuard",
+                    text=android_text,
                     callback_data="buy_android",
                 ),
             ],
@@ -117,25 +128,55 @@ async def _deliver_purchase(
     invoice_payload: str,
     free_admin: bool,
     platform: str,
+    extra_key: bool = False,
 ) -> None:
     uid_line = f"\n\nВаш ID: <code>{uid}</code> — сохраните, если поддержка попросит."
     admin_extra = ""
     platform = normalize_platform(platform) or "android"
     plan_code = "admin_free" if free_admin else "monthly"
 
-    if platform == "ios":
+    if _uses_happ(platform, settings):
+        device = "iPhone" if platform == "ios" else "Android"
         paid_title = (
             "Выдача Happ для <b>администратора</b>."
             if free_admin
-            else "Оплата принята. Ссылка для <b>Happ (iPhone)</b>:"
+            else f"Оплата принята. Ссылка <b>подписки</b> для Happ ({device}):"
         )
         if settings.happ_auto_provision:
+            sub = await get_subscription_async(settings.db_path, uid)
+            existing = (
+                ExistingClient(
+                    uuid=sub.client_uuid,
+                    email=sub.email,
+                    sub_id=sub.sub_id,
+                    expiry_ms=sub.expiry_ms,
+                )
+                if sub is not None and not extra_key
+                else None
+            )
             try:
+                nick = (uname or "").lstrip("@").strip()
                 res = await provision_vless_after_payment(
                     settings,
                     plan_code=plan_code,
-                    email_prefix=f"tg{uid}",
+                    email_prefix=nick or f"tg{uid}",
+                    existing=existing,
+                    # доп. ключ — суффикс, чтобы не столкнуться с ником основной подписки
+                    stable_email=bool(nick) and not extra_key,
                 )
+                if not extra_key:
+                    await upsert_subscription_async(
+                        settings.db_path,
+                        user_id=uid,
+                        username=uname,
+                        sub_id=res.sub_id,
+                        client_uuid=res.uuid,
+                        email=res.email,
+                        link=res.link,
+                        expiry_ms=res.expiry_ms,
+                        plan_code=plan_code,
+                        device_limit=settings.xui_device_limit,
+                    )
                 await update_payment_vless_async(
                     settings.db_path,
                     telegram_charge_id,
@@ -164,18 +205,35 @@ async def _deliver_purchase(
                 )
                 admin_extra = f"\n<b>Ошибка Happ</b>: {html.escape(err_t)}"
             else:
-                link_esc = html.escape(res.link)
-                await message.answer(
-                    f"{paid_title}\n\n"
-                    f"<code>{link_esc}</code>\n\n"
-                    "1) App Store → <b>Happ</b>\n"
-                    "2) Скопируйте ссылку → Happ → импорт из буфера\n"
-                    "3) Включите VPN"
-                    + uid_line,
-                    disable_web_page_preview=True,
-                )
+                if extra_key:
+                    await send_happ_access(
+                        message,
+                        link=res.link,
+                        title="🔑 <b>Дополнительный ключ</b> (админ). Кабинет не менялся.",
+                        uid_line=uid_line,
+                        platform=platform,
+                        reply_markup=back_keyboard(),
+                    )
+                elif existing is not None:
+                    await message.answer(
+                        "🔄 <b>Подписка продлена</b>\n"
+                        f"Действует до: <b>{fmt_expiry(res.expiry_ms)}</b> (МСК)\n\n"
+                        "В приложении ничего менять не нужно — ссылка та же."
+                        + uid_line,
+                        reply_markup=back_keyboard(),
+                    )
+                else:
+                    await send_happ_access(
+                        message,
+                        link=res.link,
+                        title=paid_title,
+                        uid_line=uid_line,
+                        platform=platform,
+                        reply_markup=back_keyboard(),
+                    )
                 admin_extra = (
                     f"\nHapp email=<code>{html.escape(res.email)}</code> "
+                    f"sub=<code>{html.escape(res.sub_id)}</code> "
                     f"uuid=<code>{html.escape(res.uuid)}</code>"
                 )
         else:
@@ -290,6 +348,7 @@ async def _try_admin_free_buy(
     platform: str,
     *,
     actor: User | None = None,
+    extra_key: bool = False,
 ) -> bool:
     user = actor or message.from_user
     uid = user.id if user else 0
@@ -327,6 +386,7 @@ async def _try_admin_free_buy(
         invoice_payload=payload,
         free_admin=True,
         platform=plat,
+        extra_key=extra_key,
     )
     return True
 
@@ -429,6 +489,9 @@ async def _watch_yk_payment(
                 async def answer_document(self, document: object, **kwargs: object) -> None:
                     await bot.send_document(chat_id, document=document, **kwargs)  # type: ignore[arg-type]
 
+                async def answer_photo(self, photo: object, **kwargs: object) -> None:
+                    await bot.send_photo(chat_id, photo=photo, **kwargs)  # type: ignore[arg-type]
+
             await _fulfill_yk_payment(
                 _Msg(),  # type: ignore[arg-type]
                 bot,
@@ -463,7 +526,10 @@ async def _start_sbp_checkout(
 
     plat = normalize_platform(platform) or "android"
     uname = user.username if user else None
-    label = "iPhone (Happ)" if plat == "ios" else "Android (WireGuard)"
+    if plat == "ios":
+        label = "iPhone (Happ)"
+    else:
+        label = "Android (Happ)" if _uses_happ(plat, settings) else "Android (WireGuard)"
     desc = f"AlesVPN 1 мес {settings.price_rub} ₽ — {label}"
 
     try:
@@ -504,11 +570,65 @@ async def _start_sbp_checkout(
 
 @router.message(Command("buy"))
 async def cmd_buy(message: Message, settings: Settings) -> None:
+    android_line = (
+        "• <b>Android</b> — подписка Happ (https)"
+        if settings.android_delivery == "happ"
+        else "• <b>Android</b> — ключ WireGuard для AlesVPN"
+    )
     await message.answer(
         f"Выберите платформу (месяц — <b>{settings.price_rub} ₽</b>, СБП):\n"
-        "• <b>Android</b> — ключ WireGuard для AlesVPN\n"
-        "• <b>iPhone</b> — ссылка Happ (vless://)",
-        reply_markup=_platform_keyboard(),
+        f"{android_line}\n"
+        "• <b>iPhone</b> — подписка Happ (https)",
+        reply_markup=_platform_keyboard(settings),
+    )
+
+
+def _issue_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Android — Happ", callback_data="issue_android")],
+            [InlineKeyboardButton(text="iPhone — Happ", callback_data="issue_ios")],
+            [InlineKeyboardButton(text="◀️ Админ", callback_data="admin")],
+        ],
+    )
+
+
+@router.message(Command("issue"))
+async def cmd_issue(message: Message, settings: Settings) -> None:
+    uid = message.from_user.id if message.from_user else 0
+    if not is_admin(uid, settings):
+        await message.answer("Нет доступа.")
+        return
+    await message.answer(
+        "🔑 <b>Дополнительный ключ</b>\n"
+        "Новая ссылка в панели. Кабинет и основная подписка не меняются.",
+        reply_markup=_issue_keyboard(),
+    )
+
+
+@router.callback_query(F.data.in_({"issue", "issue_android", "issue_ios"}))
+async def callback_issue(query: CallbackQuery, bot: Bot, settings: Settings) -> None:
+    await query.answer()
+    if query.message is None or not query.from_user:
+        return
+    if not is_admin(query.from_user.id, settings):
+        await query.message.answer("Нет доступа.")
+        return
+    data = query.data or "issue"
+    if data == "issue":
+        await query.message.answer(
+            "🔑 <b>Дополнительный ключ</b>\nВыберите платформу:",
+            reply_markup=_issue_keyboard(),
+        )
+        return
+    platform = "ios" if data == "issue_ios" else "android"
+    await _try_admin_free_buy(
+        query.message,
+        bot,
+        settings,
+        platform,
+        actor=query.from_user,
+        extra_key=True,
     )
 
 
@@ -521,7 +641,7 @@ async def callback_buy(query: CallbackQuery, bot: Bot, settings: Settings) -> No
     if data == "buy":
         await query.message.answer(
             "Выберите платформу:",
-            reply_markup=_platform_keyboard(),
+            reply_markup=_platform_keyboard(settings),
         )
         return
     platform = "ios" if data == "buy_ios" else "android"
@@ -572,32 +692,6 @@ async def callback_yk_check(query: CallbackQuery, bot: Bot, settings: Settings) 
         await query.message.answer("Платёж отменён. Создайте новый через /buy.")
     elif status == "error":
         await query.message.answer("Не удалось проверить оплату. Попробуйте позже.")
-
-
-@router.message(Command("stats"))
-async def cmd_stats(message: Message, settings: Settings) -> None:
-    uid = message.from_user.id if message.from_user else 0
-    if not is_admin(uid, settings):
-        await message.answer("Нет доступа.")
-        return
-    total = await payment_count_async(settings.db_path)
-    rows = await list_recent_payments_async(settings.db_path, limit=15)
-    if not rows:
-        await message.answer(f"Записей об оплатах пока нет. Всего в базе: {total}.")
-        return
-    lines = [f"<b>Оплаты</b> (всего: {total})\n"]
-    for r in rows:
-        uname = f"@{html.escape(r.username)}" if r.username else "—"
-        ch = html.escape(r.telegram_charge_id)
-        wg = f" | WG {html.escape(r.wg_address)}" if r.wg_address else ""
-        lines.append(
-            f"{html.escape(r.created_at)} | <code>{r.user_id}</code> {uname} | "
-            f"{r.amount} {html.escape(r.currency)}{wg}\n<code>{ch}</code>"
-        )
-    text = "\n".join(lines)
-    if len(text) > 3900:
-        text = text[:3890] + "…"
-    await message.answer(text)
 
 
 @router.message(Command("admin_ping"))

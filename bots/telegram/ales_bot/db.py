@@ -69,6 +69,23 @@ def init_db(path: Path, *, wg_first_octet: int = 20) -> None:
         )
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS subscriptions (
+                user_id INTEGER PRIMARY KEY,
+                username TEXT,
+                sub_id TEXT NOT NULL,
+                client_uuid TEXT NOT NULL,
+                email TEXT NOT NULL,
+                link TEXT NOT NULL,
+                expiry_ms INTEGER NOT NULL,
+                plan_code TEXT NOT NULL,
+                device_limit INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """
+        )
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS wg_meta (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
                 next_octet INTEGER NOT NULL
@@ -225,20 +242,71 @@ class PaymentRow:
     telegram_charge_id: str
     wg_public_key: str | None
     wg_address: str | None
+    platform: str | None = None
+    invoice_payload: str | None = None
 
 
-def list_recent_payments(path: Path, limit: int = 20) -> Sequence[PaymentRow]:
+@dataclass(frozen=True)
+class PaymentStats:
+    total: int
+    paid_count: int
+    paid_sum: int
+    free_count: int
+
+
+def payment_stats(path: Path) -> PaymentStats:
+    conn = _connect(path)
+    try:
+        row = conn.execute(
+            """
+            SELECT
+                COUNT(*),
+                COALESCE(SUM(CASE WHEN amount > 0 THEN 1 ELSE 0 END), 0),
+                COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0),
+                COALESCE(SUM(CASE WHEN amount <= 0 THEN 1 ELSE 0 END), 0)
+            FROM payments
+            """
+        ).fetchone()
+        return PaymentStats(
+            total=int(row[0] or 0),
+            paid_count=int(row[1] or 0),
+            paid_sum=int(row[2] or 0),
+            free_count=int(row[3] or 0),
+        )
+    finally:
+        conn.close()
+
+
+def subscription_counts(path: Path, now_ms: int) -> tuple[int, int]:
+    """(активных, всего)."""
+    conn = _connect(path)
+    try:
+        total = conn.execute("SELECT COUNT(*) FROM subscriptions").fetchone()
+        active = conn.execute(
+            """
+            SELECT COUNT(*) FROM subscriptions
+            WHERE expiry_ms <= 0 OR expiry_ms > ?
+            """,
+            (now_ms,),
+        ).fetchone()
+        return int(active[0] if active else 0), int(total[0] if total else 0)
+    finally:
+        conn.close()
+
+
+def list_recent_payments(path: Path, limit: int = 20, offset: int = 0) -> Sequence[PaymentRow]:
     conn = _connect(path)
     try:
         cur = conn.execute(
             """
             SELECT id, created_at, user_id, username, amount, currency,
-                   telegram_charge_id, wg_public_key, wg_address
+                   telegram_charge_id, wg_public_key, wg_address,
+                   platform, invoice_payload
             FROM payments
             ORDER BY id DESC
-            LIMIT ?
+            LIMIT ? OFFSET ?
             """,
-            (limit,),
+            (limit, offset),
         )
         return tuple(
             PaymentRow(
@@ -251,6 +319,8 @@ def list_recent_payments(path: Path, limit: int = 20) -> Sequence[PaymentRow]:
                 telegram_charge_id=r[6],
                 wg_public_key=r[7],
                 wg_address=r[8],
+                platform=r[9],
+                invoice_payload=r[10],
             )
             for r in cur.fetchall()
         )
@@ -427,5 +497,132 @@ async def payment_count_async(path: Path) -> int:
     return await asyncio.to_thread(payment_count, path)
 
 
-async def list_recent_payments_async(path: Path, limit: int = 20) -> Sequence[PaymentRow]:
-    return await asyncio.to_thread(list_recent_payments, path, limit)
+async def list_recent_payments_async(
+    path: Path, limit: int = 20, offset: int = 0
+) -> Sequence[PaymentRow]:
+    return await asyncio.to_thread(list_recent_payments, path, limit, offset)
+
+
+async def payment_stats_async(path: Path) -> PaymentStats:
+    return await asyncio.to_thread(payment_stats, path)
+
+
+async def subscription_counts_async(path: Path, now_ms: int) -> tuple[int, int]:
+    return await asyncio.to_thread(subscription_counts, path, now_ms)
+
+
+@dataclass(frozen=True)
+class SubscriptionRow:
+    user_id: int
+    username: str | None
+    sub_id: str
+    client_uuid: str
+    email: str
+    link: str
+    expiry_ms: int
+    plan_code: str
+    device_limit: int
+    created_at: str
+    updated_at: str
+
+
+_SUB_COLUMNS = (
+    "user_id, username, sub_id, client_uuid, email, link, expiry_ms, "
+    "plan_code, device_limit, created_at, updated_at"
+)
+
+
+def get_subscription(path: Path, user_id: int) -> SubscriptionRow | None:
+    conn = _connect(path)
+    try:
+        row = conn.execute(
+            f"SELECT {_SUB_COLUMNS} FROM subscriptions WHERE user_id=?",
+            (user_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return SubscriptionRow(*row)
+    finally:
+        conn.close()
+
+
+def upsert_subscription(
+    path: Path,
+    *,
+    user_id: int,
+    username: str | None,
+    sub_id: str,
+    client_uuid: str,
+    email: str,
+    link: str,
+    expiry_ms: int,
+    plan_code: str,
+    device_limit: int,
+) -> None:
+    conn = _connect(path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO subscriptions (
+                user_id, username, sub_id, client_uuid, email, link,
+                expiry_ms, plan_code, device_limit
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                username = excluded.username,
+                sub_id = excluded.sub_id,
+                client_uuid = excluded.client_uuid,
+                email = excluded.email,
+                link = excluded.link,
+                expiry_ms = excluded.expiry_ms,
+                plan_code = excluded.plan_code,
+                device_limit = excluded.device_limit,
+                updated_at = datetime('now')
+            """,
+            (
+                user_id,
+                username,
+                sub_id,
+                client_uuid,
+                email,
+                link,
+                expiry_ms,
+                plan_code,
+                device_limit,
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+async def get_subscription_async(path: Path, user_id: int) -> SubscriptionRow | None:
+    return await asyncio.to_thread(get_subscription, path, user_id)
+
+
+async def upsert_subscription_async(
+    path: Path,
+    *,
+    user_id: int,
+    username: str | None,
+    sub_id: str,
+    client_uuid: str,
+    email: str,
+    link: str,
+    expiry_ms: int,
+    plan_code: str,
+    device_limit: int,
+) -> None:
+    await asyncio.to_thread(
+        upsert_subscription,
+        path,
+        user_id=user_id,
+        username=username,
+        sub_id=sub_id,
+        client_uuid=client_uuid,
+        email=email,
+        link=link,
+        expiry_ms=expiry_ms,
+        plan_code=plan_code,
+        device_limit=device_limit,
+    )

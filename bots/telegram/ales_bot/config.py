@@ -1,4 +1,4 @@
-﻿"""Загрузка настроек из переменных окружения (.env)."""
+"""Загрузка настроек из переменных окружения (.env)."""
 
 from __future__ import annotations
 
@@ -24,6 +24,18 @@ def _parse_admin_ids(raw: str) -> tuple[int, ...]:
         if part.isdigit():
             out.append(int(part))
     return tuple(out)
+
+
+@dataclass(frozen=True)
+class XuiPanel:
+    """Одна панель 3x-ui (нода)."""
+
+    base_url: str
+    username: str
+    password: str
+    api_token: str
+    inbound_id: int
+    label: str = ""
 
 
 @dataclass(frozen=True)
@@ -64,6 +76,11 @@ class Settings:
     xui_sni: str
     xui_fp: str
     xui_flow: str
+    xui_sub_base_url: str
+    xui_link_format: str
+    xui_panels: tuple[XuiPanel, ...]
+    xui_device_limit: int
+    android_delivery: str
     invoice_payload: str = "alesvpn_sub_v1"
 
 
@@ -117,6 +134,15 @@ def load_settings() -> Settings:
     if wg_min < 2 or wg_max > 254 or wg_min > wg_max:
         raise ValueError("WG_OCTET_MIN / WG_OCTET_MAX должны быть в диапазоне 2–254 и min ≤ max")
 
+    # happ = Android получает ту же подписку Reality, wireguard = ключ WG
+    android_delivery = (os.getenv("ANDROID_DELIVERY") or "happ").strip().lower()
+    if android_delivery in ("wg", "wireguard"):
+        android_delivery = "wireguard"
+    elif android_delivery in ("happ", "vless", "reality", "subscription"):
+        android_delivery = "happ"
+    else:
+        raise RuntimeError("ANDROID_DELIVERY: допустимы happ или wireguard")
+
     happ_auto = _truthy(os.getenv("HAPP_AUTO_PROVISION"))
     xui_base = (os.getenv("XUI_BASE_URL") or "").strip()
     xui_user = (os.getenv("XUI_USERNAME") or "").strip()
@@ -130,6 +156,15 @@ def load_settings() -> Settings:
     xui_sni = (os.getenv("XUI_SNI") or "www.cloudflare.com").strip()
     xui_fp = (os.getenv("XUI_FP") or "safari").strip()
     xui_flow = (os.getenv("XUI_FLOW") or "xtls-rprx-vision").strip()
+    # limitIp в 3x-ui: сколько устройств может держать подписку одновременно, 0 = без лимита
+    xui_device_limit = int(os.getenv("XUI_DEVICE_LIMIT") or "1")
+    if xui_device_limit < 0:
+        raise RuntimeError("XUI_DEVICE_LIMIT: не меньше 0 (0 = без лимита)")
+    xui_sub_base = (os.getenv("XUI_SUB_BASE_URL") or "").strip().rstrip("/")
+    # subscription = https://…/path (предпочтительно); vless = прямая ссылка на ноду
+    xui_link_format = (os.getenv("XUI_LINK_FORMAT") or "").strip().lower()
+    if not xui_link_format:
+        xui_link_format = "subscription" if xui_sub_base.startswith("https://") else "vless"
 
     if happ_auto:
         if not xui_base:
@@ -140,10 +175,53 @@ def load_settings() -> Settings:
             )
         if xui_inbound < 1:
             raise RuntimeError("HAPP_AUTO_PROVISION: задайте XUI_INBOUND_ID")
-        if not xui_host or not xui_pbk or not xui_sid:
-            raise RuntimeError(
-                "HAPP_AUTO_PROVISION: задайте XUI_PUBLIC_HOST, XUI_PBK, XUI_SID",
+        if xui_link_format == "subscription":
+            if not xui_sub_base.startswith("https://"):
+                raise RuntimeError(
+                    "HAPP_AUTO_PROVISION: XUI_SUB_BASE_URL должен быть https://… "
+                    "(Happ на iPhone не принимает http). "
+                    "Либо XUI_LINK_FORMAT=vless + XUI_PUBLIC_HOST/PBK/SID",
+                )
+        elif xui_link_format == "vless":
+            if not xui_host or not xui_pbk or not xui_sid:
+                raise RuntimeError(
+                    "HAPP_AUTO_PROVISION (vless): задайте XUI_PUBLIC_HOST, XUI_PBK, XUI_SID",
+                )
+        else:
+            raise RuntimeError("XUI_LINK_FORMAT: subscription или vless")
+
+    panels: list[XuiPanel] = [
+        XuiPanel(
+            base_url=xui_base,
+            username=xui_user,
+            password=xui_pass,
+            api_token=xui_token,
+            inbound_id=xui_inbound,
+            label=(os.getenv("XUI_LABEL") or "primary").strip() or "primary",
+        )
+    ]
+    xui2_base = (os.getenv("XUI2_BASE_URL") or "").strip()
+    if xui2_base:
+        xui2_inbound = int(os.getenv("XUI2_INBOUND_ID") or "0")
+        xui2_token = (os.getenv("XUI2_API_TOKEN") or "").strip()
+        xui2_user = (os.getenv("XUI2_USERNAME") or xui_user).strip()
+        xui2_pass = os.getenv("XUI2_PASSWORD")
+        if xui2_pass is None:
+            xui2_pass = xui_pass
+        if happ_auto and xui2_inbound < 1:
+            raise RuntimeError("XUI2_BASE_URL задан: нужен XUI2_INBOUND_ID")
+        if happ_auto and not xui2_token and (not xui2_user or not xui2_pass):
+            raise RuntimeError("XUI2: задайте XUI2_API_TOKEN или USERNAME+PASSWORD")
+        panels.append(
+            XuiPanel(
+                base_url=xui2_base,
+                username=xui2_user,
+                password=xui2_pass or "",
+                api_token=xui2_token,
+                inbound_id=xui2_inbound,
+                label=(os.getenv("XUI2_LABEL") or "secondary").strip() or "secondary",
             )
+        )
 
     return Settings(
         bot_token=token,
@@ -184,6 +262,11 @@ def load_settings() -> Settings:
         xui_sni=xui_sni,
         xui_fp=xui_fp,
         xui_flow=xui_flow,
+        xui_sub_base_url=xui_sub_base,
+        xui_link_format=xui_link_format,
+        xui_panels=tuple(panels),
+        xui_device_limit=xui_device_limit,
+        android_delivery=android_delivery,
     )
 
 

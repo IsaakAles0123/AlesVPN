@@ -60,6 +60,7 @@ wg-client-*.conf
 __pycache__/
 *.py[cod]
 .venv/
+.venv-test/
 **/venv/
 
 # Личные файлы вне продукта

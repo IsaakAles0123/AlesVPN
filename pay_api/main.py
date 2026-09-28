@@ -2,8 +2,8 @@
 AlesVPN: YooKassa (веб) → редирект в кассу → return → доступ и страница /pay/done?t=.
 
 Платформы:
-  • android — WireGuard (WG_AUTO_PROVISION)
   • ios — Happ / VLESS Reality (HAPP_AUTO_PROVISION + 3x-ui)
+  • android — Happ или WireGuard, см. ANDROID_DELIVERY
 
 Uvicorn (1 worker, тот же .env что у бота + YOOKASSA_*):
   set PAY_API_MODE=1
@@ -229,7 +229,7 @@ def _yoo_currency(pay: Any) -> str:
 async def _do_provision(yk_id: str) -> str | None:
     """
     Выдать доступ при успехе. Вернуть None при успехе, иначе текст ошибки для HTML.
-    platform=ios → Happ/VLESS; android → WireGuard.
+    iOS всегда Happ/VLESS; Android — по ANDROID_DELIVERY.
     """
     s = load_settings()
     p = s.db_path
@@ -243,7 +243,7 @@ async def _do_provision(yk_id: str) -> str | None:
         platform = normalize_platform(getattr(r0, "platform", None) if r0 else None) or "android"
 
         try:
-            if platform == "ios":
+            if platform == "ios" or s.android_delivery == "happ":
                 if not s.happ_auto_provision:
                     e = "Автовыдача Happ выключена (HAPP_AUTO_PROVISION)."
                     await asyncio.to_thread(set_provision_error, p, yk_id, e)
@@ -377,19 +377,23 @@ async def pay_done(t: str | None = None) -> Any:
             ),
         )
     platform = normalize_platform(row.platform) or "android"
-    if platform == "ios" and (row.vless_link or "").strip():
+    if (row.vless_link or "").strip():
         link = html.escape(row.vless_link or "")
+        device = "iPhone" if platform == "ios" else "Android"
+        store = "App Store" if platform == "ios" else "Google Play"
         inner = f"""
-<h1>Доступ AlesVPN — iPhone (Happ)</h1>
+<h1>Доступ AlesVPN — {device} (Happ)</h1>
 <p class="sub">Сохраните ссылку. Страница одноразовая.</p>
-<p class="sub">1) Установите приложение <b>Happ</b> из App Store.<br>
-2) Скопируйте ссылку ниже → Happ → импорт из буфера.<br>
-3) Включите VPN. Отпечаток в конфиге — safari.</p>
-<h2>Ссылка vless://</h2>
+<p class="sub">1) Установите приложение <b>Happ</b> из {store}.<br>
+2) Happ → <b>добавить подписку</b> → вставьте ссылку ниже.<br>
+3) Обновите подписку и включите VPN.</p>
+<h2>Ссылка подписки (https)</h2>
 <pre class="security" style="text-align:left;user-select:all;white-space:pre-wrap;word-break:break-all">{link}</pre>
 <p class="sub"><a href='{BASE_URL}/'>на главную</a></p>
 """
-        return HTMLResponse(_html("Ключ iOS", inner), headers={"Cache-Control": "no-store"})
+        return HTMLResponse(
+            _html(f"Ключ {device}", inner), headers={"Cache-Control": "no-store"}
+        )
     if not row.paste_two_lines or not row.conf_text:
         return HTMLResponse(
             _html(
@@ -530,19 +534,26 @@ def _plan_buttons(b: str, plat: str) -> str:
 
 def _pay_index_body() -> str:
     b = BASE_URL
+    happ_android = load_settings().android_delivery == "happ"
+    android_title = "Android — Happ" if happ_android else "Android — WireGuard"
+    android_sub = (
+        "Ссылка подписки https для Happ"
+        if happ_android
+        else "Ключ для приложения AlesVPN"
+    )
     return f"""
 <h1>Оплата AlesVPN</h1>
-<p class="sub">Выберите платформу — выдаётся разный доступ.</p>
+<p class="sub">Выберите платформу.</p>
 
 <div class="pay-cols">
   <section class="pay-col" id="android">
-    <h2>Android — WireGuard</h2>
-    <p class="sub">Ключ для приложения AlesVPN</p>
+    <h2>{android_title}</h2>
+    <p class="sub">{android_sub}</p>
     {_plan_buttons(b, "android")}
   </section>
   <section class="pay-col" id="ios">
     <h2>iPhone — Happ</h2>
-    <p class="sub">Ссылка <code>vless://</code> для Happ</p>
+    <p class="sub">Ссылка подписки https для Happ</p>
     {_plan_buttons(b, "ios")}
   </section>
 </div>

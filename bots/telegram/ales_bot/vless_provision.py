@@ -14,7 +14,7 @@ from urllib.parse import quote, urlencode, urljoin
 from urllib.request import Request, build_opener, HTTPCookieProcessor
 from http.cookiejar import CookieJar
 
-from ales_bot.config import Settings
+from ales_bot.config import Settings, XuiPanel
 
 log = logging.getLogger(__name__)
 
@@ -24,6 +24,17 @@ class VlessProvisionResult:
     uuid: str
     email: str
     link: str
+    sub_id: str
+    expiry_ms: int
+
+
+@dataclass(frozen=True)
+class ExistingClient:
+    """Уже выданная подписка: продлеваем её, а не плодим новые ключи."""
+
+    uuid: str
+    email: str
+    sub_id: str
     expiry_ms: int
 
 
@@ -31,9 +42,8 @@ class VlessProvisionError(Exception):
     pass
 
 
-def plan_to_expiry_ms(plan_code: str) -> int:
-    """expiryTime в миллисекундах Unix (как в 3x-ui). 0 = без срока."""
-    days = {
+def plan_days(plan_code: str) -> int:
+    return {
         "first": 31,
         "monthly": 31,
         "m6": 186,
@@ -41,10 +51,33 @@ def plan_to_expiry_ms(plan_code: str) -> int:
         "stars": 31,
         "admin_free": 31,
     }.get((plan_code or "").strip().lower(), 31)
+
+
+def plan_to_expiry_ms(plan_code: str) -> int:
+    """expiryTime в миллисекундах Unix (как в 3x-ui). 0 = без срока."""
+    days = plan_days(plan_code)
     if days <= 0:
         return 0
     when = datetime.now(timezone.utc) + timedelta(days=days)
     return int(when.timestamp() * 1000)
+
+
+def extend_expiry_ms(current_ms: int, plan_code: str) -> int:
+    """Продление: от текущего срока, если он ещё не истёк, иначе от сегодня."""
+    days = plan_days(plan_code)
+    if days <= 0:
+        return 0
+    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    start = current_ms if current_ms and current_ms > now_ms else now_ms
+    return start + days * 86_400_000
+
+
+def build_subscription_link(settings: Settings, sub_id: str) -> str:
+    base = (settings.xui_sub_base_url or "").strip().rstrip("/")
+    sid = (sub_id or "").strip()
+    if not base or not sid:
+        raise VlessProvisionError("Не заданы XUI_SUB_BASE_URL или subId")
+    return f"{base}/{sid}"
 
 
 def build_vless_link(
@@ -79,10 +112,10 @@ def build_vless_link(
 
 
 class _XuiSession:
-    def __init__(self, settings: Settings) -> None:
-        base = settings.xui_base_url.rstrip("/") + "/"
+    def __init__(self, panel: XuiPanel) -> None:
+        base = panel.base_url.rstrip("/") + "/"
         self._base = base
-        self._settings = settings
+        self._panel = panel
         self._jar = CookieJar()
         self._opener = build_opener(HTTPCookieProcessor(self._jar))
 
@@ -142,12 +175,12 @@ class _XuiSession:
         return ""
 
     def login(self) -> None:
-        token = (self._settings.xui_api_token or "").strip()
+        token = (self._panel.api_token or "").strip()
         if token:
             # Bearer на /panel/api/* — login не нужен
             return
-        user = self._settings.xui_username.strip()
-        password = self._settings.xui_password
+        user = self._panel.username.strip()
+        password = self._panel.password
         if not user or not password:
             raise VlessProvisionError("Задайте XUI_API_TOKEN или XUI_USERNAME + XUI_PASSWORD")
 
@@ -182,10 +215,46 @@ class _XuiSession:
             raise VlessProvisionError(f"3x-ui login: {payload.get('msg') or raw[:300]}")
 
     def _auth_headers(self) -> dict[str, str]:
-        token = (self._settings.xui_api_token or "").strip()
+        token = (self._panel.api_token or "").strip()
         if token:
             return {"Authorization": f"Bearer {token}"}
         return {}
+
+    @staticmethod
+    def _payload_ok(code: int, raw: str) -> bool:
+        if code >= 400 or not raw.strip():
+            return False
+        try:
+            payload: Any = json.loads(raw)
+        except json.JSONDecodeError:
+            return False
+        if isinstance(payload, dict) and payload.get("success") is False:
+            return False
+        return True
+
+    @staticmethod
+    def _client_obj(
+        *,
+        client_uuid: str,
+        email: str,
+        flow: str,
+        expiry_ms: int,
+        sub_id: str,
+        limit_ip: int,
+    ) -> dict[str, Any]:
+        return {
+            "id": client_uuid,
+            "email": email,
+            "flow": flow,
+            "limitIp": max(0, int(limit_ip)),
+            "totalGB": 0,
+            "expiryTime": expiry_ms,
+            "enable": True,
+            "tgId": 0,
+            "subId": sub_id,
+            "comment": "",
+            "reset": 0,
+        }
 
     def add_client(
         self,
@@ -196,20 +265,16 @@ class _XuiSession:
         flow: str,
         expiry_ms: int,
         sub_id: str,
+        limit_ip: int = 0,
     ) -> None:
-        client_obj = {
-            "id": client_uuid,
-            "email": email,
-            "flow": flow,
-            "limitIp": 0,
-            "totalGB": 0,
-            "expiryTime": expiry_ms,
-            "enable": True,
-            "tgId": 0,
-            "subId": sub_id,
-            "comment": "",
-            "reset": 0,
-        }
+        client_obj = self._client_obj(
+            client_uuid=client_uuid,
+            email=email,
+            flow=flow,
+            expiry_ms=expiry_ms,
+            sub_id=sub_id,
+            limit_ip=limit_ip,
+        )
         hdrs = {
             **self._auth_headers(),
             "Content-Type": "application/json",
@@ -239,6 +304,13 @@ class _XuiSession:
                 headers=hdrs,
             )
 
+        if code == 401:
+            raise VlessProvisionError(
+                "addClient HTTP 401 (нет доступа к панели). "
+                "Проверьте XUI_BASE_URL (path), логин/пароль AMS или "
+                "создайте новый API Token в 3x-ui → Настройки → Безопасность "
+                "и пропишите XUI_API_TOKEN (уберите старый токен от FRA)."
+            )
         if code >= 400:
             raise VlessProvisionError(
                 f"addClient HTTP {code}: {raw[:500]}. "
@@ -253,9 +325,118 @@ class _XuiSession:
                 f"addClient: {payload.get('msg') or payload.get('message') or raw[:400]}"
             )
 
+    def _clients_list(self) -> list[dict[str, Any]]:
+        hdrs = {**self._auth_headers(), "Accept": "application/json"}
+        code, raw = self._request("GET", "panel/api/clients/list", headers=hdrs)
+        if not self._payload_ok(code, raw):
+            return []
+        try:
+            payload: Any = json.loads(raw)
+        except json.JSONDecodeError:
+            return []
+        rows = payload.get("obj") if isinstance(payload, dict) else None
+        if isinstance(rows, list):
+            return [r for r in rows if isinstance(r, dict)]
+        return []
 
-def _make_email_tag(prefix: str) -> str:
-    safe = "".join(c if c.isalnum() or c in "-_" else "" for c in prefix)[:24] or "ios"
+    def lookup_client_email(
+        self,
+        *,
+        sub_id: str | None,
+        client_uuid: str | None,
+        email: str | None,
+    ) -> str | None:
+        for row in self._clients_list():
+            if sub_id and str(row.get("subId") or "") == sub_id:
+                found = str(row.get("email") or "").strip()
+                if found:
+                    return found
+            if client_uuid and str(row.get("id") or "") == client_uuid:
+                found = str(row.get("email") or "").strip()
+                if found:
+                    return found
+            if email and str(row.get("email") or "") == email:
+                return email
+        return email or None
+
+    def update_client(
+        self,
+        *,
+        inbound_id: int,
+        client_uuid: str,
+        email: str,
+        flow: str,
+        expiry_ms: int,
+        sub_id: str,
+        limit_ip: int = 0,
+        old_email: str | None = None,
+    ) -> None:
+        client_obj = self._client_obj(
+            client_uuid=client_uuid,
+            email=email,
+            flow=flow,
+            expiry_ms=expiry_ms,
+            sub_id=sub_id,
+            limit_ip=limit_ip,
+        )
+        hdrs = {
+            **self._auth_headers(),
+            "Content-Type": "application/json",
+        }
+        current = self.lookup_client_email(
+            sub_id=sub_id,
+            client_uuid=client_uuid,
+            email=old_email or email,
+        ) or old_email or email
+        # Актуальный 3x-ui: POST /panel/api/clients/update/:email — тело = сам клиент
+        path = f"panel/api/clients/update/{quote(current, safe='')}"
+        code, raw = self._request(
+            "POST",
+            path,
+            data=json.dumps(client_obj, ensure_ascii=False).encode("utf-8"),
+            headers=hdrs,
+        )
+        if self._payload_ok(code, raw):
+            return
+        # Старые панели
+        legacy = {
+            "id": inbound_id,
+            "settings": json.dumps({"clients": [client_obj]}, ensure_ascii=False),
+        }
+        for ident in (current, old_email, client_uuid):
+            if not ident:
+                continue
+            legacy_path = f"panel/api/inbounds/updateClient/{quote(ident, safe='')}"
+            code2, raw2 = self._request(
+                "POST",
+                legacy_path,
+                data=json.dumps(legacy, ensure_ascii=False).encode("utf-8"),
+                headers=hdrs,
+            )
+            if self._payload_ok(code2, raw2):
+                return
+            raw = raw2
+            path = legacy_path
+            code = code2
+        raise VlessProvisionError(f"updateClient {path} HTTP {code}: {raw[:400]}")
+
+
+def sanitize_client_name(raw: str) -> str:
+    return "".join(c if c.isalnum() or c in "-_" else "" for c in (raw or ""))[:32]
+
+
+def resolve_client_email(
+    prefix: str,
+    *,
+    existing_email: str | None = None,
+    stable: bool = False,
+) -> str:
+    """Имя клиента в 3x-ui: Telegram-ник, иначе tg{id}-xxxxxx."""
+    safe = sanitize_client_name(prefix) or "user"
+    if stable:
+        return safe
+    if existing_email:
+        return existing_email
     return f"{safe}-{secrets.token_hex(3)}"
 
 
@@ -264,34 +445,98 @@ async def provision_vless_after_payment(
     *,
     plan_code: str,
     email_prefix: str = "ios",
+    existing: ExistingClient | None = None,
+    stable_email: bool = False,
 ) -> VlessProvisionResult:
     if not settings.happ_auto_provision:
         raise VlessProvisionError("Автовыдача Happ выключена (HAPP_AUTO_PROVISION)")
-    if settings.xui_inbound_id < 1:
+    panels = settings.xui_panels or ()
+    if not panels:
+        raise VlessProvisionError("Не заданы панели XUI (XUI_BASE_URL)")
+    if panels[0].inbound_id < 1:
         raise VlessProvisionError("Задайте XUI_INBOUND_ID")
 
-    client_uuid = str(uuid.uuid4())
-    email = _make_email_tag(email_prefix)
-    expiry_ms = plan_to_expiry_ms(plan_code)
     flow = settings.xui_flow.strip() or "xtls-rprx-vision"
-    sub_id = secrets.token_hex(8)
+    limit_ip = settings.xui_device_limit
+    email = resolve_client_email(
+        email_prefix,
+        existing_email=existing.email if existing is not None else None,
+        stable=stable_email,
+    )
+    if existing is not None:
+        client_uuid = existing.uuid
+        sub_id = existing.sub_id
+        expiry_ms = extend_expiry_ms(existing.expiry_ms, plan_code)
+    else:
+        client_uuid = str(uuid.uuid4())
+        sub_id = secrets.token_hex(8)
+        expiry_ms = plan_to_expiry_ms(plan_code)
 
     def _sync() -> VlessProvisionResult:
-        session = _XuiSession(settings)
-        session.login()
-        session.add_client(
-            inbound_id=settings.xui_inbound_id,
-            client_uuid=client_uuid,
-            email=email,
-            flow=flow,
-            expiry_ms=expiry_ms,
-            sub_id=sub_id,
-        )
-        link = build_vless_link(settings, client_uuid, f"alesvpn-{email}")
+        primary_ok = False
+        errors: list[str] = []
+        for i, panel in enumerate(panels):
+            label = panel.label or f"node{i+1}"
+            try:
+                session = _XuiSession(panel)
+                session.login()
+                kwargs = {
+                    "inbound_id": panel.inbound_id,
+                    "client_uuid": client_uuid,
+                    "email": email,
+                    "flow": flow,
+                    "expiry_ms": expiry_ms,
+                    "sub_id": sub_id,
+                    "limit_ip": limit_ip,
+                }
+                if existing is None:
+                    session.add_client(**kwargs)
+                else:
+                    try:
+                        session.update_client(
+                            **kwargs,
+                            old_email=existing.email,
+                        )
+                    except VlessProvisionError as upd_err:
+                        # клиента стёрли в панели — создаём заново с тем же subId
+                        try:
+                            session.add_client(**kwargs)
+                        except VlessProvisionError as add_err:
+                            if "already in use" in str(add_err).lower():
+                                raise VlessProvisionError(
+                                    f"Клиент в панели есть, но обновить не вышло: {upd_err}"
+                                ) from add_err
+                            raise
+                primary_ok = primary_ok or i == 0
+                log.info(
+                    "Happ client %s on %s inbound=%s email=%s",
+                    "renewed" if existing is not None else "ok",
+                    label,
+                    panel.inbound_id,
+                    email,
+                )
+            except Exception as e:
+                err = f"{label}: {e}"
+                errors.append(err)
+                log.exception("Happ provision failed on %s", label)
+                if i == 0:
+                    raise VlessProvisionError(err) from e
+
+        if settings.xui_link_format == "vless":
+            link = build_vless_link(
+                settings,
+                client_uuid,
+                remark="⭐ NL AlesVPN",
+            )
+        else:
+            link = build_subscription_link(settings, sub_id)
+        if errors:
+            log.warning("Happ partial provision (primary ok): %s", "; ".join(errors))
         return VlessProvisionResult(
             uuid=client_uuid,
             email=email,
             link=link,
+            sub_id=sub_id,
             expiry_ms=expiry_ms,
         )
 

@@ -16,7 +16,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 from ales_bot.config import load_settings
 from ales_bot.db import init_db_async
-from ales_bot.handlers import common, payments
+from ales_bot.handlers import admin, cabinet, common, payments
 from ales_bot.middlewares import SettingsMiddleware
 
 logging.basicConfig(
@@ -42,26 +42,48 @@ def _truthy_env(name: str) -> bool:
     return v in ("1", "true", "yes", "on")
 
 
-class AiohttpSessionIPv4(AiohttpSession):
-    """Только IPv4: на части VPS маршрут/IPv6 до api.telegram.org «висит», curl идёт по v4.
+def _ip_family() -> int | None:
+    """v4 / v6 / auto: до api.telegram.org у части VPS работает только одна версия."""
+    raw = (os.getenv("TELEGRAM_IP_FAMILY") or "").strip().lower()
+    if not raw:
+        raw = "v6" if _truthy_env("TELEGRAM_PREFER_IPV6") else "v4"
+    if raw in ("v4", "4", "ipv4", "inet"):
+        return socket.AF_INET
+    if raw in ("v6", "6", "ipv6", "inet6"):
+        return socket.AF_INET6
+    return None
+
+
+def _family_label() -> str:
+    family = _ip_family()
+    if family == socket.AF_INET:
+        return ", только IPv4"
+    if family == socket.AF_INET6:
+        return ", только IPv6"
+    return ", IPv4+IPv6"
+
+
+class AiohttpSessionFamily(AiohttpSession):
+    """Фиксирует версию IP для запросов к Telegram.
 
     В aiogram коннектор создаётся из ``_connector_init`` (см. AiohttpSession), не ``connector=`` в __init__.
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        if not _truthy_env("TELEGRAM_PREFER_IPV6"):
-            self._connector_init["family"] = socket.AF_INET
+        family = _ip_family()
+        if family is not None:
+            self._connector_init["family"] = family
             self._should_reset_connector = True
 
 
 def _make_bot_session() -> AiohttpSession:
-    """TELEGRAM_PROXY — прокси. TELEGRAM_HTTP_TIMEOUT — таймаут. TELEGRAM_PREFER_IPV6=1 — снова v4+v6."""
+    """TELEGRAM_PROXY — прокси. TELEGRAM_HTTP_TIMEOUT — таймаут. TELEGRAM_IP_FAMILY — v4/v6/auto."""
     timeout = _http_timeout_seconds()
     raw = (os.getenv("TELEGRAM_PROXY") or "").strip()
     if raw:
-        return AiohttpSessionIPv4(proxy=raw, timeout=timeout)
-    return AiohttpSessionIPv4(timeout=timeout)
+        return AiohttpSessionFamily(proxy=raw, timeout=timeout)
+    return AiohttpSessionFamily(timeout=timeout)
 
 
 async def main() -> None:
@@ -76,9 +98,11 @@ async def main() -> None:
         )
     if settings.happ_auto_provision:
         logger.info(
-            "Автовыдача Happ: inbound=%s host=%s:%s",
-            settings.xui_inbound_id,
-            settings.xui_public_host,
+            "Автовыдача Happ: panels=%s format=%s sub_base=%s host=%s:%s",
+            ",".join(f"{p.label}:{p.inbound_id}" for p in settings.xui_panels),
+            settings.xui_link_format,
+            settings.xui_sub_base_url or "—",
+            settings.xui_public_host or "—",
             settings.xui_public_port,
         )
     session = _make_bot_session()
@@ -86,7 +110,7 @@ async def main() -> None:
         "HTTP-клиент Telegram: timeout=%ss%s%s",
         _http_timeout_seconds(),
         ", прокси" if (os.getenv("TELEGRAM_PROXY") or "").strip() else "",
-        "" if _truthy_env("TELEGRAM_PREFER_IPV6") else ", только IPv4",
+        _family_label(),
     )
     bot = Bot(
         token=settings.bot_token,
@@ -96,6 +120,8 @@ async def main() -> None:
     dp = Dispatcher(storage=MemoryStorage())
     dp.update.middleware(SettingsMiddleware(settings))
 
+    dp.include_router(cabinet.router)
+    dp.include_router(admin.router)
     dp.include_router(common.router)
     dp.include_router(payments.router)
 
